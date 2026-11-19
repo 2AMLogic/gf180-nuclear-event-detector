@@ -101,7 +101,10 @@ jobs:
       - name: Expose ngspice and verify versions
         run: |
           set -euo pipefail
+          # $GITHUB_PATH applies to SUBSEQUENT steps only; the in-step check
+          # below needs the export too, or ngspice is not found (exit 127).
           echo "$HOME/tools/ngspice/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/tools/ngspice/bin:$PATH"
           echo "--- source identity"
           cat "$HOME/tools/ngspice/SOURCE.sha256" || true
           echo "--- version"
