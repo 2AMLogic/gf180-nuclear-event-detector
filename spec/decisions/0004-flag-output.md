@@ -21,8 +21,8 @@ Option 1, confirmed from the DRAFT table: **active-low, open-drain output (exter
 
 - Active-low open-drain lets several detectors share one wired alarm line — any detector can pull it low — and leaves polarity inversion to the system.
 - **Width range 10 µs – 10 ms**, set by the external capacitor over 10 pF – 10 nF with a nominal 1 µA internal stretch current (width ≈ C_ext × 1 V / 1 µA nominal: 10 pF → 10 µs, 10 nF → 10 ms): slow enough at the long end for supervision polling, fast enough at the short end to re-arm within the response row's regime.
-- **Width accuracy ± 30 %** over the default grid: the stretch current's corner spread dominates; the bound is graded by measurement at both capacitor endpoints, not interpolated.
-- **Stretch:** width accuracy ± 15 % over the default grid — a chosen bound, graded by the same endpoint measurements when pursued.
+- **Width accuracy ± 30 % of the nominal width at the programmed capacitor value** (nominal width ≈ C_ext × 1 V / 1 µA) over the default grid: the tolerance is inclusive — it grades the delivered width against that nominal, covering both the stretch current's absolute error and its corner spread (the corner spread dominates); the bound is graded by measurement at both capacitor endpoints, not interpolated. The 10 µs – 10 ms range is the programmable span of nominal widths — the setting selector's contract, not a second bound on the measured width: a delivered width may sit outside the span without missing the tolerance, and inside it without meeting it.
+- **Stretch:** width accuracy ± 15 % of the same nominal-width reference over the default grid — a chosen bound, graded by the same endpoint measurements when pursued.
 
 ## Fallback
 
@@ -36,7 +36,7 @@ Narrow the width range to **100 µs – 1 ms** if the ± 30 % width bound cannot
 
 ## Verification
 
-`tb_flag` (target-spec row 4): transient runs measuring pulse width at C_ext = 10 pF and 10 nF at every grid point, graded against 10 µs – 10 ms and ± 30 %.
+`tb_flag` (target-spec row 4): transient runs measuring pulse width at C_ext = 10 pF and 10 nF at every grid point, each graded against ± 30 % of that endpoint's nominal width (10 µs and 10 ms respectively). The 10 µs – 10 ms span is the programmable range of nominal widths — the setting selector's contract, not a second grading bound on the measured width.
 
 ## Consequences
 

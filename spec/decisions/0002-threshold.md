@@ -40,7 +40,7 @@ Narrow the program range to **50 µA – 250 µA** (accuracy ± 35 %, hysteresis
 
 ## Verification
 
-`tb_threshold` (target-spec row 2): DC sweep of the photocurrent source amplitude around the programmed threshold at every grid point, plus statistical runs; flag-assertion amplitude graded against ± 25 % and hysteresis against ≥ 30 %.
+`tb_threshold` (target-spec row 2): DC sweep of the photocurrent source amplitude up through and back down below the programmed threshold at every grid point — hysteresis is the separation of the rising and falling crossings — plus statistical runs; flag-assertion amplitude graded against ± 25 % and hysteresis against ≥ 30 %.
 
 ## Consequences
 

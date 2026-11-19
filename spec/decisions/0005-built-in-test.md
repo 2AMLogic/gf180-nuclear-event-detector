@@ -31,7 +31,7 @@ Option 2: the board forces a calibrated test current on the sensing node externa
 ## Evidence (public primary sources, accessed 2026-11-19)
 
 - The injected current is defined against row 2's *programmed* threshold, scaled from the same reference branch that programs the comparison — see record [0002](0002-threshold.md); both branches are graded by the same grid.
-- gf180mcu PDK (https://github.com/google/gf180mcu-pdk), variant `gf180mcuD`: 6.0 V MOS families (`sm141064.ngspice` lines 130–132) for the injection branch; no new device family is introduced by this record.
+- gf180mcu PDK (https://github.com/google/gf180mcu-pdk), variant `gf180mcuD`: the 6.0 V MOS families (`.lib` includes `nfet_06v0_t` / `pfet_06v0_t` / `nfet_06v0_nvt_t`, `sm141064.ngspice` lines 130–132 as accessed) for the injection branch; no new device family is introduced by this record.
 
 ## Verification
 

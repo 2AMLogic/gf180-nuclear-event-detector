@@ -34,7 +34,7 @@ Relax the step edge-rate bound to ≤ 1 V/µs via a new decision record if the g
 ## Evidence (public primary sources, accessed 2026-11-19)
 
 - In-repo: `sim/harness/corners.py` — the default grid's ± 10 % supply axis (`DEFAULT_SUPPLY_TOLERANCE = 0.10`, i.e. the 4.5 – 5.5 V band) is the band these stimulus amplitudes are defined inside, so the immunity runs ride the existing grid machinery.
-- gf180mcu PDK (https://github.com/google/gf180mcu-pdk), variant `gf180mcuD`: the device domain is unchanged by this record (6.0 V MOS families, `sm141064.ngspice` lines 130–132); the immunity cases stress the *design*, not new devices.
+- gf180mcu PDK (https://github.com/google/gf180mcu-pdk), variant `gf180mcuD`: the device domain is unchanged by this record (6.0 V MOS families, `.lib` includes `nfet_06v0_t` / `pfet_06v0_t` / `nfet_06v0_nvt_t`, `sm141064.ngspice` lines 130–132 as accessed); the immunity cases stress the *design*, not new devices.
 
 ## Verification
 
