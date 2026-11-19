@@ -11,13 +11,13 @@ The part sits in its inactive state almost all its life; the standby budget gove
 
 ## Options considered
 
-1. **≤ 500 µA, measured at the minimum threshold setting (10 µA), worst grid point** — the DRAFT bound, with the measurement condition made explicit.
+1. **≤ 500 µA, measured at the minimum threshold setting, worst grid point** — the DRAFT bound, with the measurement condition made explicit.
 2. **≤ 500 µA at any threshold setting** — contradicts the threshold record: at a 1 mA setting the reference branch alone carries 1 mA continuously.
 3. **Switched/pulsed reference branch** — average current falls, but the comparison then must re-settle on every reference pulse, coupling the response-time row to a duty cycle.
 
 ## Choice
 
-Option 1, confirmed from the DRAFT table with an explicit condition: **total VDD current ≤ 500 µA in the inactive state, measured at the 10 µA threshold setting, at the worst point of the default grid — reported with the point at which it occurred — including the sensing junction's dark leakage.**
+Option 1, confirmed from the DRAFT table with an explicit condition: **total VDD current ≤ 500 µA in the inactive state, measured at the minimum setting of row 2's then-current range, at the worst point of the default grid — reported with the point at which it occurred — including the sensing junction's dark leakage.**
 
 - Defining the condition at the minimum setting keeps the bound verifiable and consistent with the threshold record's consequence (quiescent current grows with the programmed setting — by design, and documented there).
 - The worst point is *measured*, not pre-named. Junction leakage rises with temperature and is largest at the `ff` corner — the PDK's diode-corner sections scale the junction saturation parameters with `jsa` (`diode_ss` → `jsa=0.85`, `diode_ff` → `jsa=1.15`), so `ff` leakage runs ~35 % above `ss` — and MOS subthreshold leakage runs the same direction, while the designed branch currents are near corner-independent. Which grid point is therefore worst is a result the testbench reports, not an assumption the spec bakes in: measuring every point and checking the bound at the worst one bounds the whole grid without under-reporting it.

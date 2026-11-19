@@ -21,7 +21,7 @@ Option 1, confirmed from the DRAFT table: **≤ 200 ns from the photocurrent cro
 
 - The measurement is per grid point and per pulse shape from the sensing row's pulse model (rise time constant ≤ 1 ns), so the bound covers the slowest sanctioned stimulus, not just an idealised step.
 - The pulse model's fastest decay (5 ns time constant) empties the photocurrent well inside the 200 ns budget, so the bound is defined on a *latched* crossing: assertion means the flag asserted on the threshold-crossing event, held by the stretcher (the flag row's width definition) after the stimulus is gone — never a response graded on a sustained photocurrent level, which the fastest pulse shape does not provide.
-- A 180 nm current comparator plus a few logic stages is comfortably sub-100 ns at the slow corners; the 200 ns budget leaves roughly an order of magnitude of design margin, and the 50 ns stretch keeps the value honest rather than trivially loose.
+- A 180 nm current comparator plus a few logic stages is comfortably sub-100 ns at the slow corners; the 200 ns budget leaves a factor of at least two over that estimate, and the 50 ns stretch keeps the value honest rather than trivially loose.
 
 ## Fallback
 

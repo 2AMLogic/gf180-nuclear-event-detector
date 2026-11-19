@@ -35,7 +35,7 @@ Narrow the program range to **50 µA – 250 µA** (accuracy ± 35 %, hysteresis
 - gf180mcu PDK (https://github.com/google/gf180mcu-pdk), variant `gf180mcuD`, `libs.tech/ngspice/sm141064.ngspice`:
   - the `.lib` includes `nfet_06v0_t` / `pfet_06v0_t` / `nfet_06v0_nvt_t` (lines 130–132 as accessed) — the mirror devices whose corner spread sets the accuracy bound; the families' `t`/`f`/`s`/`fs`/`sf` corner `.lib` sections live elsewhere in the same library file;
   - `libs.tech/ngspice/design.ngspice`: the documented statistical switches `sw_stat_global` / `sw_stat_mismatch` used by the threshold row's Monte-Carlo runs.
-- The setting resistor is external; the PDK's on-poly resistor families (`ppolyf_u_1k/2k/3k`, `sm141064.ngspice`) are available for any internal ratio-setting resistors, where their corner behaviour is graded inside the same grid.
+- The setting resistor is external; the PDK's on-poly resistor families in the 6.0 V device area (`ppolyf_u_1k_6p0` / `ppolyf_u_2k_6p0` / `ppolyf_u_3k`, `sm141064.ngspice`) are available for any internal ratio-setting resistors — the plain `ppolyf_u_1k`/`_2k` devices are 3.3 V-area and out of bounds by the supply-domain record ([0007](0007-supply-domain.md)) — where their corner behaviour is graded inside the same grid.
 - In-repo: `sim/harness/corners.py` defines the ± 10 % supply axis and the five MOS corners the accuracy bound is graded over.
 
 ## Verification
