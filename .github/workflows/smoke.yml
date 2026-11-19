@@ -38,9 +38,18 @@ jobs:
       - name: Read pins from sim/toolchain.json and sim/pdk.json
         run: |
           python3 - >> "$GITHUB_ENV" <<'PY'
-          import json
+          import json, re, sys
           t = json.load(open("sim/toolchain.json"))
           p = json.load(open("sim/pdk.json"))
+          # These two values are written to $GITHUB_ENV (one per line) and
+          # interpolated into later steps; a malformed value (e.g. a newline)
+          # would inject extra env lines. Restrict both to a single safe
+          # token before anything is written.
+          PIN_RE = r"^[A-Za-z0-9._-]+$"
+          for name, value in (("PDK", str(p["default_variant"])),
+                              ("PYTHON_MIN", str(t["python_min"]))):
+              if not re.fullmatch(PIN_RE, value):
+                  sys.exit(f"invalid pin {name}={value!r}: must match {PIN_RE}")
           print(f"NGSPICE_VERSION={int(t['ngspice_min_major'])}")
           print(f"OPEN_PDKS={t['pdk_version'].split()[-1]}")
           print(f"PDK={p['default_variant']}")

@@ -26,7 +26,7 @@ set -uo pipefail
 
 SIM_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SIM_DIR}/.." && pwd)"
-cd "${REPO_ROOT}"
+cd "${REPO_ROOT}" || exit 1
 
 JOBS="${SMOKE_JOBS:-2}"
 
