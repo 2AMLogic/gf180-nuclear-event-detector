@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "Pinned toolchain for this repo's evidence, CHECKED (not merely recorded)",
+    "before any PVT point is simulated. Ported from gf180-comparator/sim/",
+    "toolchain.json -- the pins themselves are re-derived against this host's",
+    "install, not copied blind.",
+    "  pdk_version       the open_pdks revision the gf180mcu models must come",
+    "                    from, as the verbatim first line of the variant",
+    "                    directory's SOURCES marker ('open_pdks <hash>').",
+    "                    EXACT match required, because the revision IS the",
+    "                    device models: a different one silently yields",
+    "                    numbers no other record under sim/ is comparable",
+    "                    with. This is the revision the ciel store on the",
+    "                    reference host has enabled (the install sim/pdk.json",
+    "                    resolves to via its prepended ~/.ciel search root),",
+    "                    and the one .github/workflows/smoke.yml installs.",
+    "                    Remove the key to disable the check (not recommended).",
+    "  ngspice_min_major floor, not an exact match -- newer ngspice is allowed",
+    "                    and recorded; older is refused. The workflow builds",
+    "                    exactly this major from source.",
+    "  python_min        floor, as 'major.minor'. Harness is stdlib-only."
+  ],
+  "pdk_version": "open_pdks f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7",
+  "ngspice_min_major": 46,
+  "python_min": "3.9"
+}

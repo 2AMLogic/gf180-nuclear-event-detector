@@ -1,0 +1,23 @@
+* Frozen netlist snapshot for record 20261119-060505-3a60013
+* sha256     : e1ead43d5e3eab37ebf069e18e114131fc50a6ef3567e860c583ed122b93ba96
+* This is a verbatim copy taken at record time. Do not edit.
+* Neutral harness smoke bench: one diode-connected 3.3 V NMOS (nfet_03v3)
+* at a fixed gate bias, DC operating point.
+*
+* This circuit is deliberately device-level and generic: it carries no
+* statement about this repository's block, its spec, or its design. Its only
+* job is to exercise the harness's PVT plumbing end to end -- PDK model
+* include, per-corner .lib sections, temperature and supply points -- so a
+* green smoke run is evidence the harness works, and the selftest's
+* sabotaged run (all corners forced to typical) fails its
+* process-sensitivity check, proving corner switching is real.
+*
+* The harness owns .include/.lib/.temp/.control/.end and the definitions of
+* vdd_val/vdd_nom/temp_c (see sim/harness/testbench.py); this fragment
+* supplies only the circuit.
+
+* supply rail, and the 0 V ammeter in the drain path
+vdd   top   0 {vdd_val}
+vmeas top   drain 0
+* diode-connected NMOS: gate tied to drain (ports are d g s b)
+xdut  drain drain 0 0 nfet_03v3 w=1u l=1u
