@@ -5,7 +5,7 @@ designed by AI agents driving
 [klayout-tools](https://github.com/2AMLogic/klayout-tools) and the open-source
 flow — xschem + ngspice, with layout, DRC, and LVS through klayout-tools.
 
-It watches the photocurrent of a reverse-biased diode and raises a flag within a fraction of a microsecond when a radiation pulse arrives, so the system around it can protect itself.
+It is a small science instrument: it watches the photocurrent of a reverse-biased diode and raises a flag within a fraction of a microsecond when a pulse of ionizing radiation arrives, for pulsed-source experiments, beam diagnostics and detector readout.
 
 **Where the idea came from.** It is the most-discussed part the idea list turned up, and the circuit itself is a fast current comparator with a pulse stretcher: a good test of the open analog flow. The prompt was a post on r/nicechips, a forum where engineers share parts they admire: [a nuclear event detector](https://www.reddit.com/r/nicechips/comments/1xuv0ca/nuclear_event_detector/). This repo is an original design of the same kind of part, not a copy of the one in the post.
 
@@ -35,7 +35,7 @@ Design stage: spec
 **Just opened, specification phase.** Nothing is designed yet, nothing has been
 taped out, and nothing has been measured.
 
-Not being built here: a radiation-hardened part. This is an unhardened detector circuit, verified in simulation only; no radiation test is planned and no hardness or dose-rate figure is claimed. No schematic, layout or silicon exists yet.
+Not being built here: a radiation-hardened or military part. This is a general-purpose laboratory detector circuit. This is an unhardened detector circuit, verified in simulation only; no radiation test is planned and no hardness or dose-rate figure is claimed. No schematic, layout or silicon exists yet.
 
 ## Built agent-native
 
@@ -76,6 +76,8 @@ layout/        GDS + DRC/LVS reports (klayout-tools driven)
 measurements/  silicon characterization (empty until tape-out)
 sim/           analog testbenches + PVT corner results
 spec/          ratified spec + decision records
+WORK_LOG.md    record of merged PRs and closed issues (maintained by Guide)
+WORK_PLAN.md   backlog snapshot from label state (maintained by Guide)
 ```
 
 ## License

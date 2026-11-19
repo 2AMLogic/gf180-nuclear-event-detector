@@ -24,7 +24,12 @@ designed and verified by AI agents — an **analog** block.
   record's own `Status:` line from `proposed` to `RATIFIED` **in the PR
   itself**, never as a follow-up commit.
 
-- **This repo is private until the operator rules on its export classification.** Do not describe this block's function in a public issue, PR or commit anywhere; tool-gap issues filed elsewhere stay generic, as always. Make no hardness, dose or dose-rate claim: the spec is written in electrical terms (photocurrent, response time) and stays that way.
+- **This is a general-purpose science instrument, and the spec stays electrical.**
+  The block is a fast photocurrent comparator with a pulse stretcher, for
+  laboratory radiation-pulse detection. Specify and verify it in electrical
+  terms (photocurrent, threshold, response time). Make no hardness, dose or
+  dose-rate claim, and do not design to or cite any military specification:
+  nothing here is developed for a defense application.
 
 ## Harness bootstrap
 
