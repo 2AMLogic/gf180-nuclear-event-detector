@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "Committed PDK defaults for this repo. Environment variables win over this",
+    "file, and sim/pdk.local.json (git-ignored) wins over both.",
+    "  name            drives the GF180_PDK_PATH env var and the deck headers.",
+    "  default_variant gf180mcu flavor directory to use (5LM / metal_top 11K).",
+    "  model_lib       the model .lib file corner sections are read from,",
+    "                  relative to the variant directory. Its top-level corner",
+    "                  sections are named typical/ff/ss/fs/sf (see",
+    "                  sim/harness/corners.py).",
+    "  design_include  the PDK's global switches/params include (Monte Carlo",
+    "                  switch defaults), included ahead of the model library.",
+    "  search_roots    extra directories that CONTAIN variant dirs, searched",
+    "                  before the built-in list (~/.volare, ~/.ciel,",
+    "                  /usr/share/pdk, ...). ~/.ciel is prepended so a box with",
+    "                  both a ciel and a volare store resolves to the ciel",
+    "                  install, whose enabled revision is the one pinned in",
+    "                  sim/toolchain.json -- the same revision CI installs.",
+    "Ported by pattern from 2AMLogic/gf180-comparator's sim/pdk.json."
+  ],
+  "name": "gf180",
+  "default_variant": "gf180mcuD",
+  "model_lib": "libs.tech/ngspice/sm141064.ngspice",
+  "design_include": "libs.tech/ngspice/design.ngspice",
+  "search_roots": ["~/.ciel"]
+}

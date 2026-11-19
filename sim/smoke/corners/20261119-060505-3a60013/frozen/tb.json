@@ -1,0 +1,23 @@
+{
+  "name": "smoke",
+  "description": "Neutral harness smoke bench: a diode-connected 3.3 V NMOS (nfet_03v3, w=1u l=1u) at a fixed gate bias, DC operating point, swept over the default five-corner MOS PVT grid. Device-level and generic on purpose -- no connection to this repository's block; the bench exists so the harness can prove itself, not to characterize a device.",
+  "claim": "HARNESS CHECK, NOT A BLOCK CLAIM. A pass says the harness resolved the PDK, applied real per-corner model sections, swept temperature and supply, and recorded append-only evidence; it makes no statement about any device quality, this block's function, or any spec value. The limits below are harness-plumbing bounds (is corner switching measurable, is the operating point in a sane band), re-derived from the first --no-write bring-up run, not a device claim; they move only via a committed record that says why.",
+  "netlist": "tb_smoke.spice",
+  "netlist_provenance": "schematic (hand-authored smoke bench, never taken through layout)",
+  "nominal_supply_v": 3.3,
+  "supply_tolerance": 0.1,
+  "temperatures_c": [-40, 27, 125],
+  "corners": ["mos"],
+  "analyses": ["op"],
+  "measure": {
+    "id_ua": "i(vmeas)*1e6"
+  },
+  "checks": {
+    "id_ua": {
+      "description": "Drain current sanity band plus a process-sensitivity floor. Band re-derived from the first --no-write bring-up run (2026-11-19, 45/45 points ok): observed 133.7 uA (ss/125C/2.97V) to 389.9 uA (ff/-40C/3.63V), so 100..600 is a bounded sanity band with headroom, not a device spec. The floor is the harness's own negative-control hook: the weakest (temperature, supply) slice spread across the five corners is ~30% observed, so a floor of 10% must hold normally and MUST fail when corners are sabotaged to all-typical (spread collapses to ~0).",
+      "min": 100,
+      "max": 600,
+      "min_spread_pct_by_axis": {"process": 10}
+    }
+  }
+}
