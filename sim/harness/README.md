@@ -34,6 +34,40 @@ paragraph (what a block is expected to add, and how). Read those before
 editing — they say which changes belong in *this* package versus which
 belong in a block-specific replacement or subclass.
 
+## Generic core vs specific to this block
+
+The one-command proof that all of this works is `sim/smoke.sh` (CI runs it
+on every PR and every push to main, see `.github/workflows/smoke.yml`).
+
+**Generic — unchanged from the scaffolded core.** `pdk.py`, `toolchain.py`,
+`testbench.py`, `runner.py`, `evidence.py`, `report.py`, `strict_json.py`,
+`cli.py`. No block-specific reading happens in these; this repo carries no
+evidence-schema subclass yet (`evidence.BaseExtensions` still suffices).
+
+**Modified for this PDK — the one sanctioned edit.** `corners.py`'s built-in
+corner *names* keep their generic `tt`/`ff`/`ss`/`fs`/`sf` spellings, but the
+`tt` entry's model `sections` tuple is `("typical",)`: the gf180mcu model
+library `libs.tech/ngspice/sm141064.ngspice` names its typical section
+`typical`, not `tt` (the other four match the default spellings). Verified
+against the open_pdks `f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7` install,
+2026-11-19. This is exactly the edit this package's docstring reserves for
+the adopting PDK.
+
+**Block-authored config and benches (not part of this package).**
+
+- `sim/pdk.json` — PDK identity: name (`gf180`), default variant
+  (`gf180mcuD`), the model `.lib` path, the global-switches `design.ngspice`
+  include, and a `~/.ciel` search root prepended so both local and CI
+  resolve to the ciel store's enabled install.
+- `sim/toolchain.json` — pins: `pdk_version` (the exact `open_pdks` SOURCES
+  line, CI installs the same revision), `ngspice_min_major` (46; CI builds
+  exactly this major from source), `python_min` (3.9).
+- `sim/smoke/` — the neutral smoke bench: a diode-connected 3.3 V NMOS
+  operating point, deliberately device-level with no connection to this
+  block's function. Its `checks` are harness-plumbing bounds, not device
+  claims.
+
+
 ## Extension points — what a block layers on top
 
 This core deliberately does not know:

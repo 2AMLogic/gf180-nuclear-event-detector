@@ -64,12 +64,14 @@ class Corner:
     description: str = ""
 
 
-#: The classic five MOS corners. Section names match FAMILIES = ("mos",);
-#: most open PDKs use exactly these strings as their `.lib` section names --
-#: if this PDK's model library uses different ones, edit the tuples below
-#: rather than the surrounding mechanics.
+#: The classic five MOS corners. Section names match FAMILIES = ("mos",).
+#: gf180mcu edit (the one PDK-specific edit this package's docstring names):
+#: the gf180mcu model library ``libs.tech/ngspice/sm141064.ngspice`` names
+#: its typical section ``typical``, not ``tt`` -- ``ff``/``ss``/``fs``/``sf``
+#: match the default spellings. Verified against the open_pdks
+#: f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7 install, 2026-11-19.
 CORNERS: dict[str, Corner] = {
-    "tt": Corner("tt", ("tt",), "typical NMOS / typical PMOS"),
+    "tt": Corner("tt", ("typical",), "typical NMOS / typical PMOS"),
     "ff": Corner("ff", ("ff",), "fast NMOS / fast PMOS"),
     "ss": Corner("ss", ("ss",), "slow NMOS / slow PMOS"),
     "fs": Corner("fs", ("fs",), "fast NMOS / slow PMOS"),
