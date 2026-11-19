@@ -19,11 +19,11 @@ A part whose entire purpose is asserting one line under one stimulus must be gra
 
 Option 1. None of the following raises the flag, at any point of the default grid:
 
-- **Supply steps** of ± 10 % of VDD (± 0.5 V at the 5.0 V nominal) with edge rates ≤ 10 V/µs — confirmed from the DRAFT row ("supply steps up to 10 % within the supply range"), now with an edge-rate bound; the ± 10 % is the same band the supply row rates the part over, so this grades normal regulation behaviour, not an extreme event.
-- **Power-up**: VDD ramped to 4.5 V in 1 ms – 100 ms must not raise the flag during or after the ramp — the part must come up silent.
+- **Supply steps** of ± 0.5 V (the DRAFT row's ± 10 % at the 5.0 V nominal), stated as an absolute step and clamped to the 4.5 – 5.5 V operating band, with edge rates ≤ 10 V/µs — confirmed from the DRAFT row ("supply steps up to 10 % within the supply range"), now with an edge-rate bound. The step is absolute, not a percentage of the grid point: at the 5.5 V point a + 10 % step would reach 6.05 V — outside the supply row's band and above the 6.0 V device rating the supply record leans on — so the case would be undefined at the top of its own grid. A ± 0.5 V step at the 5.5 V point stays inside the band, and the clamp states the rail explicitly rather than leaving a testbench author to invent one.
+- **Power-up**: VDD ramped to the grid point's own supply (4.5 / 5.0 / 5.5 V) in 1 ms – 100 ms must not raise the flag during or after the ramp — the part must come up silent at every supply the part is rated over.
 - **Coupled noise**: ± 0.25 V sinusoid superimposed on VDD, 1 kHz – 10 MHz, must not raise the flag — the frequency span covers board-level coupling from regulation ripple up through the detect path's own regime.
 
-The ± 0.25 V / 10 V/µs figures are chosen inside the hysteresis and bandwidth budgets established by the threshold row ([0002](0002-threshold.md)) and the response row ([0003](0003-speed.md)); if those rows change, this row re-grades against them.
+The ± 0.25 V and 10 V/µs figures are chosen engineering bounds, not derived values: no supply-referred-to-photocurrent mapping is asserted here, because the detect path's rejection of supply-referred disturbance is a design property to be *measured*, and `tb_immunity` grades these bounds directly. They are sized to be plausible against the hysteresis and bandwidth budgets established by the threshold row ([0002](0002-threshold.md)) and the response row ([0003](0003-speed.md)); if those rows change, this row re-grades against them.
 
 ## Fallback
 
@@ -31,7 +31,7 @@ Relax the step edge-rate bound to ≤ 1 V/µs via a new decision record if the g
 
 ## Evidence (public primary sources, accessed 2026-11-19)
 
-- In-repo: `sim/harness/corners.py` — the default grid's ± 10 % supply axis (`DEFAULT_SUPPLY_TOLERANCE = 0.10`) is the same band these stimulus amplitudes are set inside, so the immunity runs ride the existing grid machinery.
+- In-repo: `sim/harness/corners.py` — the default grid's ± 10 % supply axis (`DEFAULT_SUPPLY_TOLERANCE = 0.10`, i.e. the 4.5 – 5.5 V band) is the band these stimulus amplitudes are defined inside, so the immunity runs ride the existing grid machinery.
 - gf180mcu PDK (https://github.com/google/gf180mcu-pdk), variant `gf180mcuD`: the device domain is unchanged by this record (6.0 V MOS families, `sm141064.ngspice` lines 130–132); the immunity cases stress the *design*, not new devices.
 
 ## Verification

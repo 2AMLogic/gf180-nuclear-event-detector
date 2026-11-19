@@ -20,7 +20,7 @@ The flag is the part's entire output contract: polarity and drive type decide ho
 Option 1, confirmed from the DRAFT table: **active-low, open-drain output (external pull-up), pulse width set by one external capacitor**.
 
 - Active-low open-drain lets several detectors share one wired alarm line — any detector can pull it low — and leaves polarity inversion to the system.
-- **Width range 10 µs – 10 ms**, set by the external capacitor over 10 pF – 100 nF with a nominal 1 µA internal stretch current (width ≈ C_ext × 1 V / 1 µA nominal): slow enough at the long end for supervision polling, fast enough at the short end to re-arm within the response row's regime.
+- **Width range 10 µs – 10 ms**, set by the external capacitor over 10 pF – 10 nF with a nominal 1 µA internal stretch current (width ≈ C_ext × 1 V / 1 µA nominal: 10 pF → 10 µs, 10 nF → 10 ms): slow enough at the long end for supervision polling, fast enough at the short end to re-arm within the response row's regime.
 - **Width accuracy ± 30 %** over the default grid: the stretch current's corner spread dominates; the bound is graded by measurement at both capacitor endpoints, not interpolated.
 
 ## Fallback
@@ -35,7 +35,7 @@ Narrow the width range to **100 µs – 1 ms** if the ± 30 % width bound cannot
 
 ## Verification
 
-`tb_flag` (target-spec row 4): transient runs measuring pulse width at C_ext = 10 pF and 100 nF at every grid point, graded against 10 µs – 10 ms and ± 30 %.
+`tb_flag` (target-spec row 4): transient runs measuring pulse width at C_ext = 10 pF and 10 nF at every grid point, graded against 10 µs – 10 ms and ± 30 %.
 
 ## Consequences
 

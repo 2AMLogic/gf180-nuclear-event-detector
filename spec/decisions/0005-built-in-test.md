@@ -17,9 +17,9 @@ The detect path — sensing junction node, comparison against the programmed thr
 
 ## Choice
 
-Option 1, confirmed from the DRAFT table, now with a measurable pass criterion: **a TEST input injects a fixed internal current of at least 1.2 × the minimum programmable threshold (row 2) into the detect path; driving TEST active must raise the flag within the response row's budget (row 3) and hold the stretched width within ± 30 % (row 4).**
+Option 1, confirmed from the DRAFT table, now with a measurable pass criterion: **a TEST input injects a fixed internal current of at least 2 × the minimum programmable threshold (row 2) into the detect path; driving TEST active must raise the flag within the response row's budget (row 3) and hold the stretched width within ± 30 % (row 4).**
 
-- ≥ 1.2 × minimum threshold guarantees the test current trips the comparison even at the worst accuracy corner of the lowest setting — the test proves the *whole* path, at the setting where accuracy is least favourable.
+- ≥ 2 × minimum threshold covers both spreads at the lowest setting. Row 2's ± 25 % accuracy puts the worst realized trip point at 1.25 × 10 µA = 12.5 µA; budgeting the injection branch's own corner spread at the same ± 25 % (it is built from the same 6.0 V device families and graded on the same grid) leaves a worst-case delivered test current of 0.75 × 20 µA = 15 µA — strictly above the worst trip point, with margin. A floor below the accuracy bound (e.g. 1.2 ×) would be arithmetically false at exactly the corner this test exists to cover.
 - Pass = flag raises within the response bound at every grid point, with the width bound of the flag row. Failing either is a failed test; there is no partial pass.
 - TEST must be inert when inactive: an inactive TEST pin behaves like any other input under the immunity row's stimuli.
 
@@ -38,5 +38,5 @@ Option 2: the board forces a calibrated test current on the sensing node externa
 
 ## Consequences
 
-- The part's tested-ness is a ratified, measurable claim: "the detect path raises the flag on demand" — not a assumption carried between stages.
+- The part's tested-ness is a ratified, measurable claim: "the detect path raises the flag on demand" — not an assumption carried between stages.
 - The TEST pin joins the pin budget that the AREA row's pad-ring exclusion ([0009](0009-area.md)) and the immunity row's coupled-noise grid ([0006](0006-immunity.md)) both account for.

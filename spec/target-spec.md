@@ -8,7 +8,7 @@
   [`decisions/`](decisions/) with the same lifecycle.
 - **Terms of expression:** every value below is electrical — photocurrent,
   time, voltage, current, area. This specification states no ionizing-exposure
-  figure of any kind; see decision record
+  figure of any kind and cites no military specification; see decision record
   [0010-claims](decisions/0010-claims.md).
 
 ## PDK and device domain
@@ -52,13 +52,13 @@ the grid.
 | 1 | Sensing element | One reverse-biased Nwell/P-substrate junction of the 6.0 V diode family, junction area ≥ 1,000 µm²; cathode (N-well) at VDD, anode (P-substrate) at ground | N+/P-substrate junction of the 6.0 V diode family, same polarity and bias | Junction area ≥ 10,000 µm² | `tb_sense_bias`: DC operating point of the biased junction plus a transient with the modelled photocurrent pulse (exponential current source in parallel with the junction, rise time constant ≤ 1 ns, decay time constant swept 5 ns – 1 µs); full default grid |
 | 2 | Detection threshold | 10 µA – 1 mA photocurrent, set by one external resistor; accuracy ± 25 % of the programmed threshold over the default grid; hysteresis ≥ 30 % of the programmed threshold | 50 µA – 250 µA program range, accuracy ± 35 %, hysteresis ≥ 15 % | Accuracy ± 15 % | `tb_threshold`: DC sweep of the photocurrent source amplitude around the programmed threshold, plus *statistical* runs (global + mismatch); full default grid |
 | 3 | Response time | ≤ 200 ns from photocurrent crossing the programmed threshold to flag assertion | ≤ 500 ns | ≤ 50 ns | `tb_response`: transient, threshold-crossing to flag-assertion delay measured per point; full default grid |
-| 4 | Flag output | Active-low, open-drain (external pull-up); pulse width 10 µs – 10 ms set by one external capacitor, width accuracy ± 30 % over the default grid | 100 µs – 1 ms width range | Width accuracy ± 15 % | `tb_flag`: transient, width measured at both capacitor endpoints (10 pF, 100 nF); full default grid |
-| 5 | Built-in test | A TEST input injects a fixed internal current (≥ 1.2 × the minimum programmable threshold) and must raise the flag within the response-time bound, holding the stretched width within ± 30 % | Externally injected test current on the sensing node instead of an internal path | TEST current programmable in two steps | `tb_bit`: assert TEST, measure flag timing and width; full default grid |
-| 6 | Immunity | None of the following raises the flag: supply steps of ± 10 % of VDD with edge rates ≤ 10 V/µs; power-up ramp to 4.5 V in 1 – 100 ms; ± 0.25 V sinusoid superimposed on VDD, 1 kHz – 10 MHz | Step edge-rate bound relaxed to ≤ 1 V/µs via a new decision record | Survives ± 15 % supply steps without a false flag | `tb_immunity`: one transient per stimulus case; full default grid |
-| 7 | Standby current | ≤ 500 µA total VDD current in the inactive state, measured at the 10 µA threshold setting, at the worst grid point (5.5 V, 125 °C, ss), including the sensing junction's dark leakage | ≤ 1 mA, via a new decision record | ≤ 100 µA | `tb_standby`: DC operating point, inactive state; the bound is checked at the worst point of the full default grid |
+| 4 | Flag output | Active-low, open-drain (external pull-up); pulse width 10 µs – 10 ms set by one external capacitor, width accuracy ± 30 % over the default grid | 100 µs – 1 ms width range | Width accuracy ± 15 % | `tb_flag`: transient, width measured at both capacitor endpoints (10 pF, 10 nF); full default grid |
+| 5 | Built-in test | A TEST input injects a fixed internal current (≥ 2 × the minimum programmable threshold) and must raise the flag within the response-time bound, holding the stretched width within ± 30 % | Externally injected test current on the sensing node instead of an internal path | TEST current programmable in two steps | `tb_bit`: assert TEST, measure flag timing and width; full default grid |
+| 6 | Immunity | None of the following raises the flag: supply steps of ± 0.5 V (clamped to the 4.5 – 5.5 V band) with edge rates ≤ 10 V/µs; power-up ramp to the grid point's own supply in 1 – 100 ms; ± 0.25 V sinusoid superimposed on VDD, 1 kHz – 10 MHz | Step edge-rate bound relaxed to ≤ 1 V/µs via a new decision record | Survives ± 15 % supply steps without a false flag | `tb_immunity`: one transient per stimulus case; full default grid |
+| 7 | Standby current | ≤ 500 µA total VDD current in the inactive state, measured at the 10 µA threshold setting, at the worst point of the default grid — reported with the point at which it occurred — including the sensing junction's dark leakage | ≤ 1 mA, via a new decision record | ≤ 100 µA | `tb_standby`: DC operating point, inactive state; the bound is checked at the worst point of the full default grid |
 | 8 | Supply voltage | 5 V nominal, 4.5 V – 5.5 V operating | None — the device domain is fixed by the sensing-element record | Functional 4.0 V – 5.5 V | The supply axis of every other row's grid; `tb_standby` additionally demonstrates the inactive state at both rail extremes |
 | 9 | AREA | ≤ 0.10 mm² core (silicon area inside the core ring, excluding the pad ring and all external components) | ≤ 0.20 mm² core, via a new decision record | ≤ 0.05 mm² core | Not a simulation: post-layout area of the DRC-clean GDS, measured with klayout-tools and recorded under `measurements/` |
-| 10 | Claims | Electrical terms only; no ionizing-exposure figure anywhere in this repository; export-classification ruling pending, repository stays private until ruled | — | — | Review gate: automated text check plus human read, re-run on every later change to this file |
+| 10 | Claims | Electrical terms only; no ionizing-exposure figure anywhere in this repository; designed to and citing no military specification; operator ruling 2026-11-19: general-purpose science instrument, repository public | — | — | Review gate: automated text check plus human read, re-run on every later change to this file |
 
 ## Provenance of the values
 
@@ -77,7 +77,7 @@ justifies it:
 | 7 Standby current | ≤ 500 µA, stretch ≤ 100 µA | confirmed; measurement condition (minimum threshold setting, worst grid point) added | [0008](decisions/0008-standby-current.md) |
 | 8 Supply voltage | 5 V ± 10 % | confirmed against the PDK device domain | [0007](decisions/0007-supply-domain.md) |
 | 9 AREA | ≤ 0.10 mm² core, stretch ≤ 0.05 mm² | confirmed; core-area definition made explicit | [0009](decisions/0009-area.md) |
-| 10 Claims | *(no row in the DRAFT table)* | added — records the classification ruling and the terms-of-expression rule | [0010](decisions/0010-claims.md) |
+| 10 Claims | *(no row in the DRAFT table)* | added — records the operator's classification ruling and the terms-of-expression rule | [0010](decisions/0010-claims.md) |
 
 ## Change discipline
 

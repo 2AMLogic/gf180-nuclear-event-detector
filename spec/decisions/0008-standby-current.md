@@ -17,10 +17,10 @@ The part sits in its inactive state almost all its life; the standby budget gove
 
 ## Choice
 
-Option 1, confirmed from the DRAFT table with an explicit condition: **total VDD current ≤ 500 µA in the inactive state, measured at the 10 µA threshold setting, at the worst point of the default grid (5.5 V, 125 °C, ss), including the sensing junction's dark leakage.**
+Option 1, confirmed from the DRAFT table with an explicit condition: **total VDD current ≤ 500 µA in the inactive state, measured at the 10 µA threshold setting, at the worst point of the default grid — reported with the point at which it occurred — including the sensing junction's dark leakage.**
 
 - Defining the condition at the minimum setting keeps the bound verifiable and consistent with the threshold record's consequence (quiescent current grows with the programmed setting — by design, and documented there).
-- The worst grid point is where leakage and branch currents are both maximal, so a single-point check bounds the whole grid: every other point is lower.
+- The worst point is *measured*, not pre-named. Junction leakage rises with temperature and is largest at the `ff` corner — the PDK's diode-corner sections scale the junction saturation parameters with `jsa` (`diode_ss` → `jsa=0.85`, `diode_ff` → `jsa=1.15`), so `ff` leakage runs ~35 % above `ss` — and MOS subthreshold leakage runs the same direction, while the designed branch currents are near corner-independent. Which grid point is therefore worst is a result the testbench reports, not an assumption the spec bakes in: measuring every point and checking the bound at the worst one bounds the whole grid without under-reporting it.
 - Dark leakage is *measured* at that point, not assumed from the diode model card — the model's area-scaling convention for its saturation parameters makes a first-principles number unreliable at sensing-grade junction areas, and the testbench is authoritative by this repository's own rule.
 
 ## Fallback
@@ -30,7 +30,7 @@ Option 1, confirmed from the DRAFT table with an explicit condition: **total VDD
 ## Evidence (public primary sources, accessed 2026-11-19)
 
 - gf180mcu PDK (https://github.com/google/gf180mcu-pdk), variant `gf180mcuD`, `libs.tech/ngspice/sm141064.ngspice` line 38461: the `diode_nw2ps_06v0` card's saturation parameters (`is='1.6119e-006*jsa'`, level-3 model with `jsa`/`rsa` area scaling) — the parameters whose absolute value at sensing-grade areas the standby testbench measures.
-- `libs.tech/ngspice/design.ngspice`: temperature-dependent model behaviour (`tref=25` °C reference on the diode cards, temperature coefficients on the junction parameters) — the reason the check point is 125 °C, the grid's hot end.
+- `libs.tech/ngspice/sm141064.ngspice`: the diode cards' `tref=25` °C reference — the reason the grid's hot end (125 °C) is where junction leakage peaks — and the diode-corner sections' `jsa` area-scaling factors (`diode_typical`/`diode_ss`/`diode_ff` → 1/0.85/1.15), the parameters whose absolute value at sensing-grade areas the standby testbench measures.
 - In-repo: the threshold record ([0002](0002-threshold.md)) defines the reference branch whose programmed current dominates the setting dependence; the default grid in `sim/harness/corners.py` supplies the worst-point definition.
 
 ## Verification
