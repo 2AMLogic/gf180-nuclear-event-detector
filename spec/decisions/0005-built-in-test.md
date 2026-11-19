@@ -17,9 +17,10 @@ The detect path — sensing junction node, comparison against the programmed thr
 
 ## Choice
 
-Option 1, confirmed from the DRAFT table, now with a measurable pass criterion: **a TEST input injects a fixed internal current of at least 2 × the minimum programmable threshold (row 2) into the detect path; driving TEST active must raise the flag within the response row's budget (row 3) and hold the stretched width within ± 30 % (row 4).**
+Option 1, confirmed from the DRAFT table, now with a measurable pass criterion: **a TEST input injects an internal current of at least (1 + a)/(1 − s) times the programmed threshold (row 2) into the detect path — 2 × at row 2's target accuracy, 2.1 × under its fallback accuracy; driving TEST active must raise the flag within the response row's budget (row 3) and hold the stretched width within ± 30 % (row 4).**
 
-- ≥ 2 × minimum threshold covers both spreads at the lowest setting. Row 2's ± 25 % accuracy puts the worst realized trip point at 1.25 × 10 µA = 12.5 µA; budgeting the injection branch's own corner spread at the same ± 25 % (it is built from the same 6.0 V device families and graded on the same grid) leaves a worst-case delivered test current of 0.75 × 20 µA = 15 µA — strictly above the worst trip point, with margin. A floor below the accuracy bound (e.g. 1.2 ×) would be arithmetically false at exactly the corner this test exists to cover.
+- The floor is a formula, not a literal, so it survives row 2's fallback accuracy: the delivered test current must exceed the worst realized trip point at whatever setting is graded, i.e. (1 − s) · k > 1 + a, or **k > (1 + a)/(1 − s)** — where a is row 2's accuracy at that setting (target ± 25 %, fallback ± 35 %) and s the injection branch's own corner spread, budgeted at the same tolerance (it is built from the same 6.0 V device families and graded on the same grid). The injection scales with the programmed threshold — it is derived from the same reference branch that programs the comparison — so one multiplier covers row 2's whole 10 µA – 1 mA range; a fixed injection sized only for the minimum setting would provably fail to trip the comparison at every higher setting. At the target accuracy the formula gives k > 1.667, so the required 2 × carries margin; a floor below the accuracy bound (e.g. 1.2 ×) would be arithmetically false at exactly the corner this test exists to cover.
+- **Stretch:** the TEST current programmable in two steps (row 5's stretch cell) is a chosen engineering convenience — naturally the two endpoints of row 2's range — graded by the same `tb_bit` runs at both steps.
 - Pass = flag raises within the response bound at every grid point, with the width bound of the flag row. Failing either is a failed test; there is no partial pass.
 - TEST must be inert when inactive: an inactive TEST pin behaves like any other input under the immunity row's stimuli.
 
@@ -29,12 +30,12 @@ Option 2: the board forces a calibrated test current on the sensing node externa
 
 ## Evidence (public primary sources, accessed 2026-11-19)
 
-- The injected current is defined against row 2's minimum programmable threshold (10 µA) — see record [0002](0002-threshold.md); the reference branch that mirrors it is graded by the same grid.
+- The injected current is defined against row 2's *programmed* threshold, scaled from the same reference branch that programs the comparison — see record [0002](0002-threshold.md); both branches are graded by the same grid.
 - gf180mcu PDK (https://github.com/google/gf180mcu-pdk), variant `gf180mcuD`: 6.0 V MOS families (`sm141064.ngspice` lines 130–132) for the injection branch; no new device family is introduced by this record.
 
 ## Verification
 
-`tb_bit` (target-spec row 5): assert TEST at every grid point, measure flag assertion delay against the response bound and the width against the flag row's bound; verify TEST's inert state under the immunity row's stimuli (shared run with `tb_immunity`).
+`tb_bit` (target-spec row 5): assert TEST at both endpoints of row 2's programming range — the 10 µA and 1 mA settings (the stretch's two steps, when pursued, are graded the same way) — at every grid point; measure flag assertion delay against the response bound and the width against the flag row's bound; verify TEST's inert state under the immunity row's stimuli (shared run with `tb_immunity`).
 
 ## Consequences
 

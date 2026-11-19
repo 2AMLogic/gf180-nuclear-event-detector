@@ -22,6 +22,7 @@ Option 1, confirmed from the DRAFT table with an explicit condition: **total VDD
 - Defining the condition at the minimum setting keeps the bound verifiable and consistent with the threshold record's consequence (quiescent current grows with the programmed setting — by design, and documented there).
 - The worst point is *measured*, not pre-named. Junction leakage rises with temperature and is largest at the `ff` corner — the PDK's diode-corner sections scale the junction saturation parameters with `jsa` (`diode_ss` → `jsa=0.85`, `diode_ff` → `jsa=1.15`), so `ff` leakage runs ~35 % above `ss` — and MOS subthreshold leakage runs the same direction, while the designed branch currents are near corner-independent. Which grid point is therefore worst is a result the testbench reports, not an assumption the spec bakes in: measuring every point and checking the bound at the worst one bounds the whole grid without under-reporting it.
 - Dark leakage is *measured* at that point, not assumed from the diode model card — the model's area-scaling convention for its saturation parameters makes a first-principles number unreliable at sensing-grade junction areas, and the testbench is authoritative by this repository's own rule.
+- **Stretch:** ≤ 100 µA — a chosen bound, graded by the same worst-point measurement when pursued.
 
 ## Fallback
 

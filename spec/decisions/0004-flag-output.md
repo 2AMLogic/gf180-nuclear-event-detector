@@ -22,6 +22,7 @@ Option 1, confirmed from the DRAFT table: **active-low, open-drain output (exter
 - Active-low open-drain lets several detectors share one wired alarm line — any detector can pull it low — and leaves polarity inversion to the system.
 - **Width range 10 µs – 10 ms**, set by the external capacitor over 10 pF – 10 nF with a nominal 1 µA internal stretch current (width ≈ C_ext × 1 V / 1 µA nominal: 10 pF → 10 µs, 10 nF → 10 ms): slow enough at the long end for supervision polling, fast enough at the short end to re-arm within the response row's regime.
 - **Width accuracy ± 30 %** over the default grid: the stretch current's corner spread dominates; the bound is graded by measurement at both capacitor endpoints, not interpolated.
+- **Stretch:** width accuracy ± 15 % over the default grid — a chosen bound, graded by the same endpoint measurements when pursued.
 
 ## Fallback
 
@@ -31,7 +32,7 @@ Narrow the width range to **100 µs – 1 ms** if the ± 30 % width bound cannot
 
 - gf180mcu PDK (https://github.com/google/gf180mcu-pdk), variant `gf180mcuD`: the 6.0 V MOS families (`nfet_06v0`/`pfet_06v0`, `sm141064.ngspice` lines 130–132) provide the open-drain device at the 5 V rail; the pad/IO library (`libs.ref/gf180mcu_fd_io`) provides the pin structure.
 - Any internal stretch capacitor required by the stretch topology uses the PDK's MIM capacitor models (`libs.tech/ngspice/sm141064_mim.ngspice`, `cap_mim_*` subcircuits); the width-setting capacitor itself is external, exactly like the threshold row's resistor.
-- The 1 µA nominal stretch current is chosen on the same order as the standby budget (record [0008](0008-standby-current.md)) so the stretch branch stays inside the inactive-state budget while not asserting.
+- The 1 µA nominal stretch current sits two to three orders below the standby budget (record [0008](0008-standby-current.md): ≤ 500 µA, stretch ≤ 100 µA), so the stretch branch is comfortably inside the inactive-state budget while not asserting.
 
 ## Verification
 

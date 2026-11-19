@@ -22,6 +22,7 @@ Option 1: **10 µA – 1 mA photocurrent threshold, programmed by one external r
 - The whole range maps onto ordinary resistor values, and the setting transfer needs no reference circuitry beyond a mirror.
 - **Accuracy ± 25 %** of the programmed threshold over the default grid: the mirror's corner and ratio spread dominates; the bound is set from that, and statistical runs (global + mismatch, the PDK's `sw_stat_global=1` / `sw_stat_mismatch=1` switches documented in `libs.tech/ngspice/design.ngspice`) grade it, not just corner points.
 - **Hysteresis ≥ 30 %** of the programmed threshold: a photocurrent hovering near the setting cannot re-cross into repeated flag events, and supply-noise band re-crossings stay inside the immunity row's budget.
+- **Stretch:** accuracy ± 15 % of the programmed threshold — a chosen bound, graded by the same `tb_threshold` statistical runs when pursued.
 
 **Consequence on the standby row:** the reference branch carries the programmed threshold current continuously, so quiescent current grows with the setting; the standby bound (record [0008](0008-standby-current.md)) is therefore defined at the minimum setting.
 
