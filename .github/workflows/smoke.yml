@@ -38,9 +38,18 @@ jobs:
       - name: Read pins from sim/toolchain.json and sim/pdk.json
         run: |
           python3 - >> "$GITHUB_ENV" <<'PY'
-          import json
+          import json, re, sys
           t = json.load(open("sim/toolchain.json"))
           p = json.load(open("sim/pdk.json"))
+          # These two values are written to $GITHUB_ENV (one per line) and
+          # interpolated into later steps; a malformed value (e.g. a newline)
+          # would inject extra env lines. Restrict both to a single safe
+          # token before anything is written.
+          PIN_RE = r"^[A-Za-z0-9._-]+$"
+          for name, value in (("PDK", str(p["default_variant"])),
+                              ("PYTHON_MIN", str(t["python_min"]))):
+              if not re.fullmatch(PIN_RE, value):
+                  sys.exit(f"invalid pin {name}={value!r}: must match {PIN_RE}")
           print(f"NGSPICE_VERSION={int(t['ngspice_min_major'])}")
           print(f"OPEN_PDKS={t['pdk_version'].split()[-1]}")
           print(f"PDK={p['default_variant']}")
@@ -61,10 +70,18 @@ jobs:
           print("python", sys.version)
           PY
 
+      # A stalled apt mirror once consumed the whole 30-minute job budget and
+      # surfaced as a bare `cancelled` (issue #11): give the step its own,
+      # tighter timeout and make apt retry + give up on slow mirrors, so a
+      # provisioning stall fails fast and legibly instead of masquerading as
+      # a slow smoke gate.
       - name: Install build prerequisites and runtime libraries
+        timeout-minutes: 10
         run: |
-          sudo apt-get update
+          sudo apt-get update \
+            -o Acquire::Retries=3 -o Acquire::http::Timeout=30
           sudo apt-get install -y --no-install-recommends \
+            -o Acquire::Retries=3 -o Acquire::http::Timeout=30 \
             build-essential autoconf automake libtool bison flex \
             libx11-dev libxaw7-dev libxpm-dev libxrender-dev libxext-dev \
             libreadline-dev libfftw3-dev libcairo2-dev \
@@ -80,6 +97,12 @@ jobs:
 
       - name: Build ngspice from source
         if: steps.cache-ngspice.outputs.cache-hit != 'true'
+        # Same unbounded-step class as the apt step above (issue #13): bound
+        # the step off the measured cache-miss worst case (221s, ~4x
+        # headroom) and make the fetch give up long before that, so a
+        # stalled SourceForge mirror fails fast and legibly instead of
+        # burning the job budget as a bare `cancelled`.
+        timeout-minutes: 15
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/ngspice-src"
@@ -87,7 +110,11 @@ jobs:
           # SourceForge moved superseded releases under old-releases/; the
           # bare ng-spice-rework/<ver>/ path 404s (seen on the sibling
           # gf180-comparator's CI from 2026-10-12).
-          curl -fsSL -o ngspice.tar.gz \
+          # Fetch bounds: connect/transfer give up in seconds-to-minutes,
+          # well under the step timeout; --retry 3 only retries transient
+          # failures, so a 404 still fails loudly on the first attempt.
+          curl -fsSL --connect-timeout 15 --max-time 120 --retry 3 \
+            -o ngspice.tar.gz \
             "https://downloads.sourceforge.net/project/ngspice/ng-spice-rework/old-releases/${NGSPICE_VERSION}/ngspice-${NGSPICE_VERSION}.tar.gz"
           sha256sum ngspice.tar.gz | tee ngspice.sha256
           mkdir src && tar -xzf ngspice.tar.gz -C src --strip-components=1
@@ -118,6 +145,12 @@ jobs:
           key: pdk-${{ runner.os }}-${{ env.OPEN_PDKS }}-${{ env.PDK }}-ciel-v1
 
       - name: Install ciel and enable the pinned open_pdks revision
+        # Same unbounded-step class as the apt/ngspice steps above (issue
+        # #13); ciel has no cache guard and runs every time. Steady state is
+        # 5-19s, but a cold PDK download has not been measured, so the bound
+        # is deliberately generous -- matching the apt step's 10 -- instead
+        # of tuned to the warm numbers.
+        timeout-minutes: 10
         run: |
           set -euo pipefail
           python3 -m pip install ciel==2.6.1
