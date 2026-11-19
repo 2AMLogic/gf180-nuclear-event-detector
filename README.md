@@ -48,18 +48,25 @@ result. Where the agents hit friction with the open-source tooling — most ofte
 filed as a public issue against the tool itself, so the fix benefits everyone
 using gf180mcu, not just this repo.
 
-## Target specification (DRAFT — engineering to ratify, see issue #1)
+## Target specification
 
-| Parameter | Target | Stretch |
-|---|---|---|
-| Supply voltage | 5 V ± 10 % |  |
-| Detection threshold | photocurrent threshold set by one external resistor, 10 µA to 1 mA |  |
-| Response time | ≤ 200 ns from a threshold crossing to the flag | ≤ 50 ns |
-| Flag output | active-low, open-drain; pulse stretched to a width set by one external capacitor |  |
-| Built-in test | a test input injects a current pulse and must raise the flag |  |
-| Standby current | ≤ 500 µA | ≤ 100 µA |
-| False triggers | none for supply steps up to 10 % within the supply range |  |
-| AREA | ≤ 0.10 mm² core | ≤ 0.05 mm² |
+Ratified in [`spec/target-spec.md`](spec/target-spec.md), one decision record
+per row under [`spec/decisions/`](spec/decisions/). The verification method
+per row (testbench + corner grid, expressible as a `klt sim` request) lives in
+the spec and is not repeated here.
+
+| Parameter | Target | Fallback | Stretch |
+|---|---|---|---|
+| Sensing element | One reverse-biased Nwell/P-substrate junction of the 6.0 V diode family, junction area ≥ 1,000 µm²; cathode (N-well) at VDD, anode (P-substrate) at ground | N+/P-substrate junction of the 6.0 V diode family, same polarity and bias | Junction area ≥ 10,000 µm² |
+| Detection threshold | 10 µA – 1 mA photocurrent, set by one external resistor; accuracy ± 25 % of the programmed threshold over the default grid; hysteresis ≥ 30 % of the programmed threshold | 50 µA – 250 µA program range, accuracy ± 35 %, hysteresis ≥ 15 % | Accuracy ± 15 % |
+| Response time | ≤ 200 ns from photocurrent crossing the programmed threshold to flag assertion | ≤ 500 ns | ≤ 50 ns |
+| Flag output | Active-low, open-drain (external pull-up); pulse width 10 µs – 10 ms set by one external capacitor, width accuracy ± 30 % over the default grid | 100 µs – 1 ms width range | Width accuracy ± 15 % |
+| Built-in test | A TEST input injects a fixed internal current (≥ 1.2 × the minimum programmable threshold) and must raise the flag within the response-time bound, holding the stretched width within ± 30 % | Externally injected test current on the sensing node instead of an internal path | TEST current programmable in two steps |
+| Immunity | None of the following raises the flag: supply steps of ± 10 % of VDD with edge rates ≤ 10 V/µs; power-up ramp to 4.5 V in 1 – 100 ms; ± 0.25 V sinusoid superimposed on VDD, 1 kHz – 10 MHz | Step edge-rate bound relaxed to ≤ 1 V/µs via a new decision record | Survives ± 15 % supply steps without a false flag |
+| Standby current | ≤ 500 µA total VDD current in the inactive state, measured at the 10 µA threshold setting, at the worst grid point (5.5 V, 125 °C, ss), including the sensing junction's dark leakage | ≤ 1 mA, via a new decision record | ≤ 100 µA |
+| Supply voltage | 5 V nominal, 4.5 V – 5.5 V operating | None — the device domain is fixed by the sensing-element record | Functional 4.0 V – 5.5 V |
+| AREA | ≤ 0.10 mm² core (silicon area inside the core ring, excluding the pad ring and all external components) | ≤ 0.20 mm² core, via a new decision record | ≤ 0.05 mm² core |
+| Claims | Electrical terms only; no ionizing-exposure figure anywhere in this repository; export-classification ruling pending, repository stays private until ruled | — | — |
 
 ## Repo layout
 
