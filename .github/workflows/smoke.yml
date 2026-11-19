@@ -70,10 +70,18 @@ jobs:
           print("python", sys.version)
           PY
 
+      # A stalled apt mirror once consumed the whole 30-minute job budget and
+      # surfaced as a bare `cancelled` (issue #11): give the step its own,
+      # tighter timeout and make apt retry + give up on slow mirrors, so a
+      # provisioning stall fails fast and legibly instead of masquerading as
+      # a slow smoke gate.
       - name: Install build prerequisites and runtime libraries
+        timeout-minutes: 10
         run: |
-          sudo apt-get update
+          sudo apt-get update \
+            -o Acquire::Retries=3 -o Acquire::http::Timeout=30
           sudo apt-get install -y --no-install-recommends \
+            -o Acquire::Retries=3 -o Acquire::http::Timeout=30 \
             build-essential autoconf automake libtool bison flex \
             libx11-dev libxaw7-dev libxpm-dev libxrender-dev libxext-dev \
             libreadline-dev libfftw3-dev libcairo2-dev \
