@@ -1,0 +1,38 @@
+{
+  "name": "smoke-5v",
+  "description": "Neutral harness smoke bench for the non-MOS families and the 6 V domain: a diode-connected 6 V NMOS (nfet_06v0, w=1u l=1u), a reverse-biased 6 V junction diode leakage measurement (diode_nd2ps_06v0, 1u x 1u, m=1e8), and an unsalicided n-poly resistor (npolyf_u, 20u x 1u), at a 5 V nominal supply, DC operating point, swept over the default five-corner PVT grid. Device-level and generic on purpose -- no connection to this repository's block; the bench exists so the harness can prove it switches the diode and resistor model sections every corner and resolves 6 V-domain devices, not to characterize a device.",
+  "claim": "HARNESS CHECK, NOT A BLOCK CLAIM. A pass says the harness resolved the PDK, applied real per-family model sections (MOS, diode, resistor) at every corner, swept temperature and supply, and recorded append-only evidence; it makes no statement about any device quality, this block's function, or any spec value. The limits below are harness-plumbing bounds (is corner switching measurable per family, is each operating point in a sane band), re-derived from the first --no-write bring-up run, not a device claim; they move only via a committed record that says why.",
+  "netlist": "tb_smoke_5v.spice",
+  "netlist_provenance": "schematic (hand-authored smoke bench, never taken through layout)",
+  "nominal_supply_v": 5.0,
+  "supply_tolerance": 0.1,
+  "temperatures_c": [-40, 27, 125],
+  "corners": ["mos"],
+  "analyses": ["op"],
+  "options": ["gmin=1e-18"],
+  "measure": {
+    "id6_ua": "i(vmeas6)*1e6",
+    "dio_na": "i(vdio)*1e9",
+    "res_ua": "i(vrm)*1e6"
+  },
+  "checks": {
+    "id6_ua": {
+      "description": "6 V NMOS drain current sanity band plus a process-sensitivity floor. Band re-derived from the first --no-write bring-up run (2026-11-22, 45/45 points ok): observed 193.6 uA (ss/125C/4.50V) to 608.0 uA (ff/-40C/5.50V), so 150..700 is a bounded sanity band with headroom, not a device spec. The floor is the harness's per-family negative-control hook: the weakest (temperature, supply) slice spread across the five corners is ~37% observed, so a floor of 10% must hold normally and MUST fail when corners are sabotaged to all-typical (spread collapses to ~0).",
+      "min": 150,
+      "max": 700,
+      "min_spread_pct_by_axis": {"process": 10}
+    },
+    "dio_na": {
+      "description": "Reverse-biased junction diode leakage, the non-MOS negative-control anchor of this bench. The leakage's temperature dependence spans many decades (xti=5: ~0.5 fA per m=1e8 array at -40C, ~58 uA at 125C, all observed on the 2026-11-22 --no-write bring-up run, 45/45 points ok), so the band is an order-of-magnitude sanity bound (1e-7..1e5 nA around the observed 4.9e-7..5.84e4 nA), not a device claim. The load-bearing check is the process floor: the diode_ss/diode_ff jsa skew moves the leakage ~30% at EVERY (temperature, supply) slice (weakest observed 29.7%), so a 10% floor holds normally and MUST fail when the diode family is sabotaged to typical -- proving the diode sections really switch, which a MOS-only control cannot see. .options gmin=1e-18 (manifest 'options') keeps ngspice's default 1e-12 gmin floor current from burying the cold-slice leakage.",
+      "min": 1e-07,
+      "max": 100000,
+      "min_spread_pct_by_axis": {"process": 10}
+    },
+    "res_ua": {
+      "description": "Poly resistor current sanity band plus a process-sensitivity floor. Band re-derived from the first --no-write bring-up run (2026-11-22, 45/45 points ok): observed 518.1 uA (ss/-40C/4.50V) to 1161.9 uA (ff/125C/5.50V), so 400..1400 is a bounded sanity band with headroom, not a device spec. The floor is the harness's per-family negative-control hook: the res_ss/res_ff sheet-rho skew (250..370 Ohm/sq against 310 typical) moves the current ~39% at the weakest (temperature, supply) slice, so a floor of 10% must hold normally and MUST fail when the resistor family is sabotaged to typical.",
+      "min": 400,
+      "max": 1400,
+      "min_spread_pct_by_axis": {"process": 10}
+    }
+  }
+}

@@ -1,0 +1,53 @@
+* Frozen netlist snapshot for record 20261122-215100-2915fb6
+* sha256     : 3d1fa4e3e21aa0bdd4df860a2aea4f047894d7f4ddf4885a448368798c53cb87
+* This is a verbatim copy taken at record time. Do not edit.
+* Neutral 5 V harness smoke bench: one diode-connected 6 V NMOS, one
+* reverse-biased 6 V junction diode, and one poly resistor, DC operating
+* point.
+*
+* This circuit is deliberately device-level and generic: it carries no
+* statement about this repository's block, its spec, or its design. Where
+* the 3.3 V smoke bench (sim/smoke/) proves the harness over the MOS family
+* only, this bench exists to prove the harness over the NON-MOS families the
+* corner bundles now carry -- the junction diode and resistor sections a
+* nuclear-event detector's sensing element and 5 V domain need -- plus a
+* 6 V MOS device, at a 5 V nominal supply. A green run is evidence the
+* harness resolves 6 V-domain devices and switches the diode/resistor model
+* sections per corner; the selftest's sabotaged run (every family forced to
+* typical) fails the diode and resistor process-spread floors, proving that
+* switching is real for those families and not just for MOS.
+*
+* The harness owns .include/.lib/.temp/.control/.end and the definitions of
+* vdd_val/vdd_nom/temp_c (see sim/harness/testbench.py); this fragment
+* supplies only the circuit.
+
+* ---- 6 V MOS operating point ------------------------------------------
+* supply rail, and the 0 V ammeter in the drain path
+vdd    top    0 {vdd_val}
+vmeas6 top    drain 0
+* diode-connected 6 V NMOS: gate tied to drain (ports are d g s b)
+xm6    drain  drain 0 0 nfet_06v0 w=1u l=1u
+
+* ---- reverse-biased junction diode leakage ----------------------------
+* n+ diffusion / p-substrate junction diode, 6 V flavor, anode grounded and
+* cathode held at the supply: reverse biased across the whole PVT supply
+* axis (breakdown is bv=11 V, so no corner or rail reaches it).
+* m=1e8 puts a statistically large array in parallel on purpose: one
+* 1u x 1u junction leaks at the fA scale, below ngspice's gmin floor, where
+* the corner skew would be numerically invisible. The multiplier lifts the
+* leakage into the hundreds of pA so the diode_typical/diode_ss/diode_ff
+* spread is measurable; it scales the device, not the physics. The manifest
+* sets .options gmin=1e-18 for the same reason: the default gmin=1e-12 S
+* injects a corner-independent pA-scale floor current across every junction
+* that would bury the cold leakage being measured.
+vdio0  dcath  0 {vdd_val}
+vdio   dcath  dnode 0
+ddio   0      dnode diode_nd2ps_06v0 area='1u*1u' pj='2*1u+2*1u' m=1e8
+
+* ---- poly resistor -----------------------------------------------------
+* unsalicided n-poly resistor, 20u x 1u (about 6.2 kOhm typical), driven
+* from the same PVT supply rail through a 0 V ammeter; the third port is
+* the body/substrate tie of the parasitic junction diodes.
+vrs    rtop   0 {vdd_val}
+vrm    rtop   rnode 0
+xres   rnode  0 0 npolyf_u r_length=20u r_width=1u

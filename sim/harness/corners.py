@@ -2,10 +2,13 @@
 
 GENERIC CORE:
 
-- The classic five-corner MOS process sweep (``tt``, ``ff``, ``ss``, ``fs``,
-  ``sf``) most open PDKs ship a ``.lib`` section for, registered below as the
-  default ``CORNER_SETS["mos"]``. ``CORNER_SETS["tt"]`` is the reduced,
-  single-corner smoke-test set (not a valid evidence matrix on its own).
+- The classic five-corner process sweep (``tt``, ``ff``, ``ss``, ``fs``,
+  ``sf``) registered below as the default ``CORNER_SETS["mos"]``. A corner is
+  a *bundle*: exactly one ``.lib`` section per entry in :data:`FAMILIES`,
+  because this PDK's model library has no all-device corner section -- each
+  device family ships its own (see the EXTENSION POINT table below).
+  ``CORNER_SETS["tt"]`` is the reduced, single-corner smoke-test set (not a
+  valid evidence matrix on its own).
 - :class:`Corner`, :class:`PvtPoint`, :func:`build_grid`, :func:`supply_points`,
   :func:`resolve_corners` -- the PVT-grid arithmetic itself (a corner ×
   temperature × supply full factorial, in a stable order).
@@ -14,25 +17,47 @@ GENERIC CORE:
   :data:`DEFAULT_CORNER_SET`. Empty or unknown selections are a
   :class:`CornerSelectionError`, never a silent fallback.
 - :func:`sabotage` -- the harness's negative control: forces every corner's
-  sections to typical so a corner-runner self-test can prove that switching
-  corners actually changes what gets simulated, rather than silently
-  simulating typical everywhere no matter what was asked for.
+  every-family sections to the all-typical bundle so a corner-runner
+  self-test can prove that switching corners actually changes what gets
+  simulated, rather than silently simulating typical everywhere no matter
+  what was asked for -- per family, not just for MOS.
 
 EXTENSION POINT -- corner sections don't generalize across PDKs (a PDK's
 ``.lib`` section names for "fast", "slow", or a device family other than MOS
 are PDK-specific), and *which* additional corners matter is block-specific
 (a SAR ADC cares about CDAC capacitor corners; a bandgap cares about
-resistor and BJT corners; plenty of blocks need only the five MOS corners
-as-is). Two ways to extend:
+resistor and BJT corners; plenty of blocks need only the five classic
+corners as-is). Two ways to extend:
 
-1. Edit the ``sections`` tuple on the built-in :data:`CORNERS` entries if
-   this PDK's model library uses different section names than the
-   ``tt``/``ff``/``ss``/``fs``/``sf`` default (most open PDKs use exactly
-   these names; if not, this is the one edit new to this PDK).
+1. Edit the ``sections`` tuples on the built-in :data:`CORNERS` entries if
+   this PDK's model library uses different section names than the ones
+   registered below (that is the one edit new to this PDK; the gf180mcu
+   spellings and the revision they were checked against are recorded in the
+   :data:`CORNERS` comment).
 2. Call :func:`register_corner` (and optionally :func:`register_corner_set`)
    to add block-specific corners on top -- see
    ``gf180-sar-adc/sim/harness/corners.py`` for a worked example that adds
    MiM/MOS-cap-dominated corners for a CDAC-heavy block.
+
+gf180mcu family sections, checked against the pinned install's
+``libs.tech/ngspice/sm141064.ngspice`` (open_pdks
+``f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7``, the revision
+``sim/toolchain.json`` pins), 2026-11-22 -- ported by pattern from
+``2AMLogic/gf180-comparator``'s ``sim/harness/corners.py``:
+
+    MOS       typical | ff | ss | fs | sf
+    resistor  res_typical | res_ss | res_ff
+    BJT       bjt_typical | bjt_ss | bjt_ff
+    diode     diode_typical | diode_ss | diode_ff
+    MOS cap   moscap_typical | moscap_ss | moscap_ff
+    MIM cap   mimcap_typical | mimcap_ss | mimcap_ff
+
+Only the MOS family ships ``fs``/``sf`` sections, so those two corners skew
+MOS only and leave every other family at ``*_typical``. Bundles carry their
+sections in :data:`FAMILIES` order, and :meth:`Corner.as_bundle` serialises
+them as ``klt sim`` ``corners.process`` bundle objects (``{"name": ...,
+"sections": [...]}``), so the same corner map drives both this harness and
+a fleet ``klt sim`` request without a second translation layer.
 """
 
 from __future__ import annotations
@@ -48,10 +73,27 @@ DEFAULT_SUPPLY_TOLERANCE: float = 0.10  # +/-10 %
 DEFAULT_NOMINAL_SUPPLY_V: float = 1.8   # FILL: this block's nominal supply
 
 #: Device families in the order their ``.lib`` sections are included in the
-#: generated deck (see runner.compose_deck). The generic core sweeps only
-#: "mos" by default; a block adds families (and per-corner sections for them)
-#: as it needs them.
-FAMILIES: tuple[str, ...] = ("mos",)
+#: generated deck (see runner.compose_deck). Each corner bundles exactly one
+#: section per family; a block that needs a family the core does not sweep
+#: adds it here first, then gives every corner a section for it.
+FAMILIES: tuple[str, ...] = ("mos", "res", "bjt", "diode", "moscap", "mimcap")
+
+
+def _bundle(mos: str, res: str, bjt: str, diode: str, moscap: str, mimcap: str) -> tuple[str, ...]:
+    """One section per :data:`FAMILIES` entry, in :data:`FAMILIES` order."""
+    return (mos, res, bjt, diode, moscap, mimcap)
+
+
+#: The all-typical bundle (what ``tt`` -- and the :func:`sabotage` negative
+#: control -- simulate).
+_TYPICAL = _bundle(
+    mos="typical",
+    res="res_typical",
+    bjt="bjt_typical",
+    diode="diode_typical",
+    moscap="moscap_typical",
+    mimcap="mimcap_typical",
+)
 
 
 @dataclass(frozen=True)
@@ -63,19 +105,58 @@ class Corner:
     sections: tuple[str, ...]
     description: str = ""
 
+    def as_bundle(self) -> dict:
+        """This corner as a ``klt sim`` ``corners.process`` bundle object.
 
-#: The classic five MOS corners. Section names match FAMILIES = ("mos",).
-#: gf180mcu edit (the one PDK-specific edit this package's docstring names):
-#: the gf180mcu model library ``libs.tech/ngspice/sm141064.ngspice`` names
-#: its typical section ``typical``, not ``tt`` -- ``ff``/``ss``/``fs``/``sf``
-#: match the default spellings. Verified against the open_pdks
-#: f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7 install, 2026-11-19.
+        Emits ``{"name": <name>, "sections": [...]}`` -- the request shape
+        klayout-tools' corner runner expands into one ``.lib`` card per
+        section, in declaration order (klayout-tools ``docs/cli/sim.md`` ->
+        "Corner axes"). Serialising every :data:`CORNERS` entry this way
+        yields a ``corners.process`` axis that simulates the identical
+        section bundles this harness does, with no second corner map to
+        keep in step.
+        """
+        return {"name": self.name, "sections": list(self.sections)}
+
+
+def _all(skew: str, description: str) -> Corner:
+    """Global corner: every device family skewed the same direction."""
+    if skew not in ("ff", "ss"):  # pragma: no cover - programming error
+        raise ValueError(f"no global {skew!r} bundle exists in this PDK")
+    return Corner(
+        name=skew,
+        sections=_bundle(
+            mos=skew,
+            res=f"res_{skew}",
+            bjt=f"bjt_{skew}",
+            diode=f"diode_{skew}",
+            moscap=f"moscap_{skew}",
+            mimcap=f"mimcap_{skew}",
+        ),
+        description=description,
+    )
+
+
+def _mos_only(name: str, mos_section: str, description: str) -> Corner:
+    """MOS skewed, every other family at typical (this PDK ships no
+    ``fs``/``sf`` sections for the non-MOS families)."""
+    return Corner(name=name, sections=(mos_section,) + _TYPICAL[1:], description=description)
+
+
+#: The classic five corners as per-family section bundles. gf180mcu edit
+#: (the one PDK-specific edit this package's docstring names): the model
+#: library ``libs.tech/ngspice/sm141064.ngspice`` names its MOS typical
+#: section ``typical`` (not ``tt``) and ships each non-MOS family as its own
+#: ``<family>_typical``/``<family>_ss``/``<family>_ff`` sections with no
+#: ``fs``/``sf`` variant -- the full table is in this module's docstring.
+#: Verified against the open_pdks ``f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7``
+#: install (the revision ``sim/toolchain.json`` pins), 2026-11-22.
 CORNERS: dict[str, Corner] = {
-    "tt": Corner("tt", ("typical",), "typical NMOS / typical PMOS"),
-    "ff": Corner("ff", ("ff",), "fast NMOS / fast PMOS"),
-    "ss": Corner("ss", ("ss",), "slow NMOS / slow PMOS"),
-    "fs": Corner("fs", ("fs",), "fast NMOS / slow PMOS"),
-    "sf": Corner("sf", ("sf",), "slow NMOS / fast PMOS"),
+    "tt": Corner("tt", _TYPICAL, "every device family typical"),
+    "ff": _all("ff", "every device family fast"),
+    "ss": _all("ss", "every device family slow"),
+    "fs": _mos_only("fs", "fs", "fast NMOS / slow PMOS; other families typical"),
+    "sf": _mos_only("sf", "sf", "slow NMOS / fast PMOS; other families typical"),
 }
 
 CORNER_SETS: dict[str, tuple[str, ...]] = {
@@ -198,7 +279,8 @@ def resolve_corners(names: list[str] | tuple[str, ...] | None) -> list[Corner]:
 
 
 def sabotage(corner_list: list[Corner]) -> list[Corner]:
-    """Return the same corner *names* with every section forced to typical.
+    """Return the same corner *names* with every family's section forced to
+    the all-typical bundle.
 
     This is the harness's negative control, not a feature: it reproduces the
     exact silent failure mode a corner sweep is most exposed to -- a runner

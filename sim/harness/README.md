@@ -19,7 +19,7 @@ re-derive it.
 | Module | Generic core covers |
 |---|---|
 | `pdk.py` | PDK discovery: env var / `PDK_ROOT` / `sim/pdk.local.json` / `sim/pdk.json` / built-in search-root resolution order. PDK name, variant scheme, and model-file paths come from `sim/pdk.json` (block-authored config, not part of this package) rather than being hardcoded. |
-| `corners.py` | The classic five MOS process corners (`tt`/`ff`/`ss`/`fs`/`sf`) as the default corner set, plus the PVT-grid arithmetic (`Corner`, `PvtPoint`, `build_grid`, `supply_points`, `resolve_corners`) and the `sabotage()` negative control. |
+| `corners.py` | The classic five process corners (`tt`/`ff`/`ss`/`fs`/`sf`) as per-family section bundles over `FAMILIES` (see below), plus the PVT-grid arithmetic (`Corner`, `PvtPoint`, `build_grid`, `supply_points`, `resolve_corners`), the `Corner.as_bundle()` `klt sim` serialization, and the `sabotage()` negative control. |
 | `toolchain.py` | Toolchain pin/drift checking against `sim/toolchain.json` (PDK version, ngspice floor, Python floor). Fully generic already — no block-specific content. |
 | `testbench.py` | The `tb.json` manifest schema: netlist-fragment discipline (forbidden directives and reserved PVT parameter names the harness owns), `checks` validation, `netlist_provenance` semantics. Fully generic already. |
 | `runner.py` | `compose_deck()` — assembles one complete ngspice deck from a testbench fragment, the resolved PDK's models, and one PVT point's corner sections. `run_point()` / `run_grid()` execute it and parse measurements. |
@@ -40,18 +40,37 @@ The one-command proof that all of this works is `sim/smoke.sh` (CI runs it
 on every PR and every push to main, see `.github/workflows/smoke.yml`).
 
 **Generic — unchanged from the scaffolded core.** `pdk.py`, `toolchain.py`,
-`testbench.py`, `runner.py`, `evidence.py`, `report.py`, `strict_json.py`,
-`cli.py`. No block-specific reading happens in these; this repo carries no
+`testbench.py`, `runner.py`, `evidence.py`, `report.py`, `strict_json.py`.
+No block-specific reading happens in these; this repo carries no
 evidence-schema subclass yet (`evidence.BaseExtensions` still suffices).
+`cli.py` is the scaffolded core plus one extension: the `selftest`
+subcommand additionally holds every measurement's process spread floor
+(`min_spread_pct_by_axis`) to the per-family contract — the floor must hold
+normally and break when sabotaged — evaluated by the same
+`report.evaluate_checks` a recorded run uses. Without it, a bench whose
+MOS measure moves would pass the selftest even if its diode or resistor
+sections were silently stuck at typical, which is exactly the failure the
+family bundles exist to rule out.
 
-**Modified for this PDK — the one sanctioned edit.** `corners.py`'s built-in
-corner *names* keep their generic `tt`/`ff`/`ss`/`fs`/`sf` spellings, but the
-`tt` entry's model `sections` tuple is `("typical",)`: the gf180mcu model
-library `libs.tech/ngspice/sm141064.ngspice` names its typical section
-`typical`, not `tt` (the other four match the default spellings). Verified
-against the open_pdks `f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7` install,
-2026-11-19. This is exactly the edit this package's docstring reserves for
-the adopting PDK.
+**Modified for this PDK — the one sanctioned edit, grown to cover every
+family.** `corners.py` keeps the generic corner *names* `tt`/`ff`/`ss`/`fs`/
+`sf`, but each corner is now a bundle of one `.lib` section per device
+family in `FAMILIES = ("mos", "res", "bjt", "diode", "moscap", "mimcap")`:
+the gf180mcu model library `libs.tech/ngspice/sm141064.ngspice` (pinned
+open_pdks `f6eeac7dad085ffcc829ccfd721f7b4ce39edcf7` install, verified
+2026-11-22) has no all-device corner section — its MOS sections name the
+typical one `typical` (not `tt`), and every other family ships separately
+as `<family>_typical`/`<family>_ss`/`<family>_ff` with no `fs`/`sf` variant.
+So `tt` is the all-typical bundle, `ff`/`ss` skew every family that ships
+the section, and `fs`/`sf` skew MOS only with the rest at `*_typical`.
+`Corner.as_bundle()` serialises each corner as a `klt sim`
+`corners.process` bundle object, so a fleet request can name the identical
+section lists without a second corner map. `sabotage()` forces every
+family to typical, and the selftest holds each measurement's process
+spread floor to that contract per family. Ported by pattern from
+`2AMLogic/gf180-comparator`'s `sim/harness/corners.py`; pinned in
+`sim/tests/test_corner_bundles.py`, which asserts the per-family `.lib`
+cards at every corner without a simulator.
 
 **Block-authored config and benches (not part of this package).**
 
@@ -62,10 +81,19 @@ the adopting PDK.
 - `sim/toolchain.json` — pins: `pdk_version` (the exact `open_pdks` SOURCES
   line, CI installs the same revision), `ngspice_min_major` (46; CI builds
   exactly this major from source), `python_min` (3.9).
-- `sim/smoke/` — the neutral smoke bench: a diode-connected 3.3 V NMOS
+- `sim/smoke/` — the neutral 3.3 V smoke bench: a diode-connected 3.3 V NMOS
   operating point, deliberately device-level with no connection to this
   block's function. Its `checks` are harness-plumbing bounds, not device
   claims.
+- `sim/smoke-5v/` — the neutral 5 V smoke bench: a diode-connected 6 V NMOS
+  operating point plus a reverse-biased 6 V junction-diode leakage
+  measurement and a poly resistor, proving the harness resolves 6 V-domain
+  devices and switches the non-MOS model sections at every corner. Same
+  harness-check rules; its diode/resistor process floors are the per-family
+  negative-control anchors.
+- `sim/tests/` — stdlib `unittest` suite (run by `sim/smoke.sh` step 1):
+  corner-bundle structure and deck composition checks that need no
+  simulator, PDK, or install.
 
 
 ## Extension points — what a block layers on top
