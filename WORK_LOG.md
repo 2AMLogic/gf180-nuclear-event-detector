@@ -6,6 +6,10 @@ Chronological record of merged PRs and closed issues, maintained by the Guide ro
 
 _None yet._
 
+### 2026-11-22
+
+- **PR #17**: chore(loom): resync installed Loom to v0.20.8 (clears the dispatch hold)
+
 ### 2026-11-19
 
 - **PR #14**: ci(smoke): bound ngspice-build and ciel steps with step timeouts and curl limits
