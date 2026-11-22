@@ -586,6 +586,43 @@ def matrix_conformance(tb: Testbench, points) -> dict:
     return {"full": not missing, "missing": missing, "coverage": coverage}
 
 
+def analyze_grid(
+    tb: Testbench,
+    points,
+    results: list[PointResult],
+    allow_unswept_axes: bool = False,
+) -> dict:
+    """Evaluate a finished grid once: measurement summary, per-axis
+    sensitivity, check failures, successful-point count and reconciliation.
+
+    This is the one calculation both the CLI's printed diagnostics and
+    :func:`build_record`'s verdict read from (a recorded run evaluates the
+    grid exactly once), so what the terminal says and what the record
+    saves cannot disagree. The dict carries its ``allow_unswept_axes`` so
+    :func:`build_record` can refuse an analysis whose check failures were
+    evaluated under different rules than the verdict it assigns.
+    """
+    measure_names = list(tb.measure)
+    summary = summarize(results, measure_names)
+    sensitivity = axis_sensitivity(results, measure_names)
+    failures = evaluate_checks(
+        tb.checks, results, summary, sensitivity, allow_unswept_axes=allow_unswept_axes
+    )
+    n_ok = sum(1 for r in results if r.status == "ok")
+
+    # Reconcile before any verdict: limit checks skip absent points, so a
+    # short/duplicated/foreign result list would otherwise pass vacuously.
+    reconciliation = reconcile_results(points, results)
+    return {
+        "summary": summary,
+        "sensitivity": sensitivity,
+        "failures": failures,
+        "n_ok": n_ok,
+        "reconciliation": reconciliation,
+        "allow_unswept_axes": allow_unswept_axes,
+    }
+
+
 def build_record(
     tb: Testbench,
     pdk: Pdk,
@@ -603,6 +640,7 @@ def build_record(
     git: dict | None = None,
     extensions: BaseExtensions | None = None,
     allow_unswept_axes: bool = False,
+    analysis: dict | None = None,
     toolchain: dict | None = None,
     evidence_dir: Path | None = None,
 ) -> dict:
@@ -611,19 +649,29 @@ def build_record(
     ``evidence_dir`` is the record's reserved bundle (see
     :func:`reserve_record_id`); when given, the record names it and every
     point's ``deck`` / ``log`` is an experiment-relative path into it.
-    """
-    measure_names = list(tb.measure)
-    summary = summarize(results, measure_names)
-    sensitivity = axis_sensitivity(results, measure_names)
-    failures = evaluate_checks(
-        tb.checks, results, summary, sensitivity, allow_unswept_axes=allow_unswept_axes
-    )
-    n_ok = sum(1 for r in results if r.status == "ok")
-    extensions = extensions if extensions is not None else tb.evidence
 
-    # Reconcile before the verdict: limit checks skip absent points, so a
-    # short/duplicated/foreign result list would otherwise pass vacuously.
-    reconciliation = reconcile_results(points, results)
+    ``analysis`` is an :func:`analyze_grid` result the caller already
+    computed (the CLI prints its diagnostics from it, so the printed and
+    recorded verdicts share one calculation); when given, its check
+    failures must have been evaluated with the same
+    ``allow_unswept_axes`` this record's verdict uses. Omitted, the record
+    evaluates the grid itself -- direct calls stay self-contained.
+    """
+    if analysis is None:
+        analysis = analyze_grid(tb, points, results, allow_unswept_axes)
+    elif analysis["allow_unswept_axes"] != allow_unswept_axes:
+        raise ValueError(
+            "analysis was evaluated with allow_unswept_axes="
+            f"{analysis['allow_unswept_axes']!r}, but this record's verdict uses "
+            f"{allow_unswept_axes!r}; hand in an analysis computed under the "
+            "verdict's rules"
+        )
+    summary = analysis["summary"]
+    sensitivity = analysis["sensitivity"]
+    failures = analysis["failures"]
+    n_ok = analysis["n_ok"]
+    extensions = extensions if extensions is not None else tb.evidence
+    reconciliation = analysis["reconciliation"]
 
     if not reconciliation["complete"] or n_ok != len(results):
         status = "error"

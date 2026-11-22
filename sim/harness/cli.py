@@ -75,6 +75,7 @@ from .pdk import Pdk, PdkConfigError, PdkNotFound, find_pdk
 from .report import (
     RECORDS_DIR,
     RecordExists,
+    analyze_grid,
     axis_sensitivity,
     build_record,
     describe_failure,
@@ -83,7 +84,6 @@ from .report import (
     git_provenance,
     mark_incomplete,
     matrix_conformance,
-    reconcile_results,
     record_exists,
     reserve_record_id,
     summarize,
@@ -362,26 +362,27 @@ def _simulate_and_record(
         tb, pdk, points, workdir, jobs=args.jobs, log_dir=log_dir, num_threads=args.num_threads
     )
 
-    n_ok = sum(1 for r in results if r.status == "ok")
+    # One evaluation of the finished grid: the diagnostics printed below
+    # and, on a recorded run, the record's verdict (build_record's
+    # ``analysis=``) both read it, so what is printed is what was saved.
+    analysis = analyze_grid(tb, points, results)
+
+    n_ok = analysis["n_ok"]
     print(f"{n_ok}/{len(results)} points ok")
 
-    measure_names = list(tb.measure)
-    summary = summarize(results, measure_names)
-    sensitivity = axis_sensitivity(results, measure_names)
-    failures = evaluate_checks(tb.checks, results, summary, sensitivity)
-    for failure in failures:
+    for failure in analysis["failures"]:
         print(f"FAIL: {describe_failure(failure)}", file=sys.stderr)
 
-    # Limit checks skip absent points, so a short, duplicated or foreign
-    # result list would pass them vacuously: reconcile against the requested
-    # grid (the same tuple rule build_record uses) before any verdict.
-    reconciliation = reconcile_results(points, results)
-    _print_reconciliation(reconciliation)
+    _print_reconciliation(analysis["reconciliation"])
 
     if record_id is None:
         print("--no-write (or --sabotage): nothing recorded")
         print(f"decks and logs: {workdir}")
-        ok = reconciliation["complete"] and not failures and n_ok == len(results)
+        ok = (
+            analysis["reconciliation"]["complete"]
+            and not analysis["failures"]
+            and n_ok == len(results)
+        )
         return 0 if ok else 1
 
     wall_seconds = (_dt.datetime.now(_dt.timezone.utc) - started).total_seconds()
@@ -390,6 +391,7 @@ def _simulate_and_record(
         started.isoformat(), wall_seconds, claim=args.claim or tb.claim,
         supersedes=args.supersedes or "", subset_reason=getattr(args, "subset_reason", ""),
         git=git, toolchain=tc_summary, evidence_dir=log_dir,
+        analysis=analysis,
     )
     try:
         write_netlist_snapshot(tb, tb.experiment_dir, record_id)
