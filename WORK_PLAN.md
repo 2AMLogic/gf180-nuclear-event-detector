@@ -7,7 +7,7 @@ The body below is a snapshot of GitHub label state as of the last merged docs-ma
 <!-- Maintained automatically by the Guide triage agent. Manual edits are fine but may be overwritten. -->
 
 <!-- guide:plan-body:start -->
-_Generated: 2026-11-22T21:20:00Z (snapshot; compare against live labels)_
+_Generated: 2026-11-22T23:54:00Z (snapshot; compare against live labels)_
 ## Operator Attention: Merge-Risk-Hold Pileup
 
 Judge-approved PRs under a hold (`loom:blocked` or `loom:operator`) — only a human merge decision is missing.
@@ -18,7 +18,7 @@ _None._
 
 `loom:very-important` (one counts per workspace); every stage takes these first.
 
-_None._
+- **#1**: Draft and ratify the target spec
 
 ## Important
 
@@ -69,7 +69,7 @@ _None._
 | Bucket | Count |
 |------|-------|
 | Operator merge-risk holds | 0 |
-| Very important | 0 |
+| Very important | 1 |
 | Important | 0 |
 | Ready (`loom:issue`, net of holds/building/merge-pending) | 1 |
 | In Progress (`loom:building`) | 0 |
