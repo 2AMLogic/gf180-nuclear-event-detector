@@ -1,8 +1,9 @@
 name: smoke
 
 # The harness smoke gate (issue #2): every PR and every push to main must
-# prove, from a clean checkout, that the sim harness works -- the negative
-# control (sim/smoke.sh step 1) and the recorded smoke run (step 2, which
+# prove, from a clean checkout, that the sim harness works -- the corner-
+# bundle unit tests, the negative control and the recorded smoke run for
+# each bench (sim/smoke.sh steps 1-3; the recorded run
 # writes an append-only evidence record; CI does not commit it, the same way
 # a local run's record stays a local artifact until a person commits it).
 #
@@ -175,6 +176,8 @@ jobs:
           path: |
             sim/smoke/_build
             sim/smoke/_selftest
+            sim/smoke-5v/_build
+            sim/smoke-5v/_selftest
           if-no-files-found: ignore
           include-hidden-files: true
 

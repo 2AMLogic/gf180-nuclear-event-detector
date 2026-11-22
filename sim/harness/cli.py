@@ -19,7 +19,10 @@ this file:
     selftest  run a testbench's selected corners (same selection rule as
               ``run``; needs >= 2 distinct corners) twice -- once normally,
               once sabotaged (corners.sabotage) -- and fail if the sabotaged
-              run's per-axis sensitivity does not collapse. This is the
+              run's per-axis sensitivity does not collapse, or if a
+              measurement's declared process spread floor does not hold
+              normally and break when sabotaged (the per-family negative
+              control). This is the
               harness's own negative control; see corners.sabotage's
               docstring for what it catches. Runs the same toolchain pin
               preflight as ``run`` (after corner/PDK resolution, before any
@@ -442,6 +445,33 @@ def _grid_incomplete(results, points, measure_names) -> str | None:
     return None
 
 
+def _process_floor_names(tb) -> list[str]:
+    """Measurements whose ``checks`` declare a ``process`` axis floor
+    (``min_spread_pct_by_axis``) -- the per-measure contract the negative
+    control must prove both halves of: the floor holds normally and breaks
+    when every family is sabotaged to typical."""
+    return [
+        name
+        for name, spec in (tb.checks or {}).items()
+        if "process" in (spec.get("min_spread_pct_by_axis") or {})
+    ]
+
+
+def _axis_floor_failures(checks, results, measure_names, sensitivity, axis="process"):
+    """The ``min_spread_pct_by_axis`` failures for ``axis`` only, evaluated
+    by the same :func:`report.evaluate_checks` a recorded run uses -- so the
+    selftest's verdict on a floor can never drift from what ``run`` would
+    enforce on the same numbers."""
+    failures = evaluate_checks(
+        checks, results, summarize(results, measure_names), sensitivity
+    )
+    return [
+        f
+        for f in failures
+        if f.get("kind") == "min_spread_pct_by_axis" and f.get("axis") == axis
+    ]
+
+
 def cmd_selftest(args: argparse.Namespace) -> int:
     """Negative-control self-test: sabotaged corners must fail sensitivity."""
     try:
@@ -533,6 +563,32 @@ def cmd_selftest(args: argparse.Namespace) -> int:
               "switching is not taking effect (every corner simulated as typical)",
               file=sys.stderr)
         return 1
+
+    # Per-measure negative control: every measurement that declares a process
+    # spread floor must MEET it normally (per family -- a floor on a diode or
+    # resistor measure is what proves that family's sections are really being
+    # switched, which the any-measure checks above cannot see) and must FAIL
+    # it when sabotaged. Evaluated by the same evaluate_checks a recorded run
+    # uses, so the floors mean the same thing here as they do in evidence.
+    floor_names = _process_floor_names(tb)
+    if floor_names:
+        normal_floors = _axis_floor_failures(
+            tb.checks, normal_results, measure_names, normal_sensitivity)
+        for failure in normal_floors:
+            print(f"FAIL: normal run misses its own process floor — "
+                  f"{describe_failure(failure)}", file=sys.stderr)
+            return 1
+        sabotaged_floors = _axis_floor_failures(
+            tb.checks, sabotaged_results, measure_names, sabotaged_sensitivity)
+        unbroken = [
+            name for name in floor_names
+            if name not in {f.get("measurement") for f in sabotaged_floors}
+        ]
+        if unbroken:
+            print(f"FAIL: sabotaged run still passes the process floor for "
+                  f"{', '.join(unbroken)} — that family's corner sections are "
+                  f"not taking effect", file=sys.stderr)
+            return 1
     print("ok: corner switching demonstrably changes the simulated result")
     return 0
 
