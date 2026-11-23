@@ -8,6 +8,10 @@ _None yet._
 
 ### 2026-11-22
 
+- **PR #21**: refactor: evaluate a finished grid once per recorded run
+- **Issue #19** (closed): Evaluate simulation results once per recorded run
+- **PR #20**: sim(harness): sweep diode/resistor/capacitor corner sections at every corner, prove it on a 5 V bench
+- **Issue #16** (closed): sim harness: include diode, resistor and capacitor model sections at every corner, and prove it on 6 V-domain devices
 - **PR #17**: chore(loom): resync installed Loom to v0.20.8 (clears the dispatch hold)
 
 ### 2026-11-19
