@@ -22,7 +22,10 @@ this file:
               run's per-axis sensitivity does not collapse, or if a
               measurement's declared process spread floor does not hold
               normally and break when sabotaged (the per-family negative
-              control). This is the
+              control). Each grid is evaluated by the same
+              report.analyze_grid a recorded run reads, and one whose
+              results do not reconcile with its requested points is refused
+              before any sensitivity is judged. This is the
               harness's own negative control; see corners.sabotage's
               docstring for what it catches. Runs the same toolchain pin
               preflight as ``run`` (after corner/PDK resolution, before any
@@ -76,17 +79,14 @@ from .report import (
     RECORDS_DIR,
     RecordExists,
     analyze_grid,
-    axis_sensitivity,
     build_record,
     describe_failure,
-    evaluate_checks,
     finalize_bundle,
     git_provenance,
     mark_incomplete,
     matrix_conformance,
     record_exists,
     reserve_record_id,
-    summarize,
     write_netlist_snapshot,
     write_record,
 )
@@ -428,18 +428,31 @@ def _print_reconciliation(reconciliation: dict) -> None:
                   file=sys.stderr)
 
 
-def _grid_incomplete(results, points, measure_names) -> str | None:
+def _grid_incomplete(analysis: dict, results, measure_names) -> str | None:
     """Why a selftest grid cannot support a sensitivity verdict, or None.
 
-    A grid is usable only if it returned one result per requested point and
-    every result is status ``ok`` with no ``missing`` and every requested
-    measurement present (``axis_sensitivity`` silently drops anything else).
+    ``analysis`` is the grid's :func:`report.analyze_grid` evaluation. A grid
+    is usable only if its results reconcile with the requested points --
+    exactly one per point, none for a point never requested
+    (``analysis["reconciliation"]``, the check a recorded run's verdict
+    rests on, so a result list with a duplicated and a missing point is
+    refused here however long it is) -- and every result is status ``ok``
+    (``analysis["n_ok"]``) with no ``missing`` and every requested
+    measurement present (``axis_sensitivity`` silently drops anything
+    else).
     """
-    if len(results) != len(points):
-        return f"returned {len(results)} results for {len(points)} requested points"
-    bad = [r for r in results if r.status != "ok"]
-    if bad:
-        return f"{len(bad)}/{len(results)} points did not succeed (status {bad[0].status})"
+    reconciliation = analysis["reconciliation"]
+    if not reconciliation["complete"]:
+        return (
+            f"results do not reconcile with the requested grid "
+            f"({reconciliation['results']} results for "
+            f"{reconciliation['requested']} requested points): "
+            + ", ".join(reconciliation["problems"])
+        )
+    n_ok = analysis["n_ok"]
+    if n_ok != len(results):
+        status = next(r.status for r in results if r.status != "ok")
+        return f"{len(results) - n_ok}/{len(results)} points did not succeed (status {status})"
     for r in results:
         absent = sorted({*r.missing, *(n for n in measure_names if n not in r.measurements)})
         if absent:
@@ -459,17 +472,14 @@ def _process_floor_names(tb) -> list[str]:
     ]
 
 
-def _axis_floor_failures(checks, results, measure_names, sensitivity, axis="process"):
-    """The ``min_spread_pct_by_axis`` failures for ``axis`` only, evaluated
-    by the same :func:`report.evaluate_checks` a recorded run uses -- so the
-    selftest's verdict on a floor can never drift from what ``run`` would
-    enforce on the same numbers."""
-    failures = evaluate_checks(
-        checks, results, summarize(results, measure_names), sensitivity
-    )
+def _axis_floor_failures(analysis: dict, axis="process"):
+    """The ``min_spread_pct_by_axis`` failures for ``axis`` only, read from
+    the grid's :func:`report.analyze_grid` evaluation -- so the selftest's
+    verdict on a floor is the very one a recorded ``run`` would enforce on
+    the same numbers."""
     return [
         f
-        for f in failures
+        for f in analysis["failures"]
         if f.get("kind") == "min_spread_pct_by_axis" and f.get("axis") == axis
     ]
 
@@ -521,21 +531,27 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     normal_results = run_grid(tb, pdk, normal_points, workdir / "normal", jobs=args.jobs)
     sabotaged_results = run_grid(tb, pdk, sabotaged_points, workdir / "sabotaged", jobs=args.jobs)
 
+    # One evaluation of each finished grid -- the same analyze_grid a
+    # recorded run reads. The completeness check, the sensitivity verdict
+    # and the process-floor checks below all read these two dicts.
+    normal_analysis = analyze_grid(tb, normal_points, normal_results)
+    sabotaged_analysis = analyze_grid(tb, sabotaged_points, sabotaged_results)
+
     measure_names = list(tb.measure)
     # Simulator failure is not a collapsed sensitivity: both grids must be
     # complete and successful before process movement is judged. Scratch
     # dirs are kept for diagnosis.
-    for label, results, points in (
-        ("normal", normal_results, normal_points),
-        ("sabotaged", sabotaged_results, sabotaged_points),
+    for label, analysis, results in (
+        ("normal", normal_analysis, normal_results),
+        ("sabotaged", sabotaged_analysis, sabotaged_results),
     ):
-        problem = _grid_incomplete(results, points, measure_names)
+        problem = _grid_incomplete(analysis, results, measure_names)
         if problem:
             print(f"FAIL: {label} grid incomplete or failed — {problem}; "
                   f"diagnostics kept in {workdir}", file=sys.stderr)
             return 1
-    normal_sensitivity = axis_sensitivity(normal_results, measure_names)
-    sabotaged_sensitivity = axis_sensitivity(sabotaged_results, measure_names)
+    normal_sensitivity = normal_analysis["sensitivity"]
+    sabotaged_sensitivity = sabotaged_analysis["sensitivity"]
 
     process_moved_normally = any(
         (normal_sensitivity.get(name) or {}).get("process", {}).get("max_pct") not in (None, 0)
@@ -570,18 +586,17 @@ def cmd_selftest(args: argparse.Namespace) -> int:
     # spread floor must MEET it normally (per family -- a floor on a diode or
     # resistor measure is what proves that family's sections are really being
     # switched, which the any-measure checks above cannot see) and must FAIL
-    # it when sabotaged. Evaluated by the same evaluate_checks a recorded run
-    # uses, so the floors mean the same thing here as they do in evidence.
+    # it when sabotaged. The failures come from the same analyze_grid
+    # evaluation a recorded run uses, so the floors mean the same thing
+    # here as they do in evidence.
     floor_names = _process_floor_names(tb)
     if floor_names:
-        normal_floors = _axis_floor_failures(
-            tb.checks, normal_results, measure_names, normal_sensitivity)
+        normal_floors = _axis_floor_failures(normal_analysis)
         for failure in normal_floors:
             print(f"FAIL: normal run misses its own process floor — "
                   f"{describe_failure(failure)}", file=sys.stderr)
             return 1
-        sabotaged_floors = _axis_floor_failures(
-            tb.checks, sabotaged_results, measure_names, sabotaged_sensitivity)
+        sabotaged_floors = _axis_floor_failures(sabotaged_analysis)
         unbroken = [
             name for name in floor_names
             if name not in {f.get("measurement") for f in sabotaged_floors}
